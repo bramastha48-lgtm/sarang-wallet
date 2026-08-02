@@ -234,7 +234,7 @@
                 <div class="page-header">
                     <h2>Anggaran</h2>
                     <div class="ph-actions">
-                        <span class="date-range"><i class="fas fa-calendar"></i> <span id="budgetDateRange"></span></span>
+                        <button class="btn-outline-sm" onclick="setBudget()"><i class="fas fa-cog"></i> Set Budget</button>
                     </div>
                 </div>
 
@@ -773,6 +773,12 @@
                 <div class="mb-field">
                     <label>Nominal</label>
                     <input type="text" id="withdrawGoalAmount" placeholder="Rp 0">
+                </div>
+                <div class="mb-field">
+                    <label><i class="fas fa-wallet"></i> Tarik Ke Dompet</label>
+                    <select id="withdrawGoalWallet">
+                        <option value="">Pilih Dompet</option>
+                    </select>
                 </div>
             </div>
             <div class="modal-footer">

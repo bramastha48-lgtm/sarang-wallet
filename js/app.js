@@ -371,14 +371,41 @@ async function handleWithdrawGoal(id) {
     document.getElementById('withdrawGoalId').value = id;
     document.getElementById('withdrawGoalName').value = goal.name;
     document.getElementById('withdrawGoalAmount').value = '';
+
+    // Populate wallet select
+    const wallets = await getWallets();
+    const walletSelect = document.getElementById('withdrawGoalWallet');
+    if (walletSelect) {
+        walletSelect.innerHTML = '<option value="">Pilih Dompet</option>' +
+            wallets.map(w => `<option value="${w.id}">${escapeHtml(w.name)} (${formatRupiah(w.balance || 0)})</option>`).join('');
+    }
+
     openModal('withdrawGoalModal');
 }
 
 async function handleWithdrawGoalSubmit() {
     const id = document.getElementById('withdrawGoalId')?.value;
     const amount = parseRupiah(document.getElementById('withdrawGoalAmount')?.value || '0');
+    const walletId = document.getElementById('withdrawGoalWallet')?.value;
     if (!id || !amount) return alert('Masukkan nominal');
+
     await withdrawFromGoal(id, amount);
+
+    // Add as income to selected wallet
+    if (walletId) {
+        const wallets = await getWallets();
+        const wallet = wallets.find(w => w.id === walletId);
+        await addTransaction({
+            type: 'income',
+            amount: amount,
+            date: new Date().toISOString().split('T')[0],
+            walletId: walletId,
+            walletName: wallet ? wallet.name : '',
+            category: 'Other',
+            description: 'Tarik dana dari tujuan keuangan'
+        });
+    }
+
     closeModal('withdrawGoalModal');
     await loadGoalsPage();
 }
@@ -707,8 +734,80 @@ async function loadBudgetPage() {
     const transactions = await getTransactions(200);
     const totalBalance = wallets.reduce((s, w) => s + (w.balance || 0), 0);
 
+    // Load budget settings
+    const budgetSettings = getLocalData('budgetSettings');
+    const totalBudget = budgetSettings.totalBudget || totalBalance;
+
+    // Calculate spending by category this month
+    const now = new Date();
+    const thisMonth = transactions.filter(t => {
+        const d = t.date ? new Date(t.date) : (t.createdAt ? new Date(t.createdAt) : null);
+        return d && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && t.type === 'expense';
+    });
+
+    // Category mapping
+    const needsCategories = ['Housing', 'Food & Dining', 'Transport', 'Health'];
+    const wantsCategories = ['Shopping', 'Entertainment'];
+    const savingsCategories = ['Investment'];
+
+    const needsSpent = thisMonth.filter(t => needsCategories.includes(t.category)).reduce((s, t) => s + (t.amount || 0), 0);
+    const wantsSpent = thisMonth.filter(t => wantsCategories.includes(t.category)).reduce((s, t) => s + (t.amount || 0), 0);
+    const savingsSpent = thisMonth.filter(t => savingsCategories.includes(t.category)).reduce((s, t) => s + (t.amount || 0), 0);
+    const totalSpent = needsSpent + wantsSpent + savingsSpent;
+
+    const needsLimit = Math.round(totalBudget * 0.5);
+    const wantsLimit = Math.round(totalBudget * 0.3);
+    const savingsLimit = Math.round(totalBudget * 0.2);
+
+    // Update overview
     const boAmount = document.querySelector('.bo-amount');
     if (boAmount) boAmount.textContent = formatRupiah(totalBalance);
+
+    // Update budget categories
+    const budgetCategories = document.querySelector('.budget-categories');
+    if (budgetCategories) {
+        budgetCategories.innerHTML = `
+            <div class="section-card">
+                <div class="section-header">
+                    <h3>🟣 Kebutuhan</h3>
+                    <span style="font-size:0.8rem;color:var(--text-light)">${formatRupiah(needsSpent)} / ${formatRupiah(needsLimit)}</span>
+                </div>
+                <div class="budget-category">
+                    <div class="bc-bar"><div class="bc-fill" style="width:${needsLimit > 0 ? Math.min(Math.round(needsSpent/needsLimit*100), 100) : 0}%"></div></div>
+                    <div class="bc-items">
+                        ${needsCategories.map(cat => {
+                            const spent = thisMonth.filter(t => t.category === cat).reduce((s, t) => s + (t.amount || 0), 0);
+                            return spent > 0 ? `<div class="bci-row"><span><i class="fas fa-tag"></i> ${cat}</span><span>${formatRupiah(spent)}</span></div>` : '';
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+            <div class="section-card">
+                <div class="section-header">
+                    <h3>🟠 Keinginan</h3>
+                    <span style="font-size:0.8rem;color:var(--text-light)">${formatRupiah(wantsSpent)} / ${formatRupiah(wantsLimit)}</span>
+                </div>
+                <div class="budget-category">
+                    <div class="bc-bar"><div class="bc-fill orange" style="width:${wantsLimit > 0 ? Math.min(Math.round(wantsSpent/wantsLimit*100), 100) : 0}%"></div></div>
+                    <div class="bc-items">
+                        ${wantsCategories.map(cat => {
+                            const spent = thisMonth.filter(t => t.category === cat).reduce((s, t) => s + (t.amount || 0), 0);
+                            return spent > 0 ? `<div class="bci-row"><span><i class="fas fa-tag"></i> ${cat}</span><span>${formatRupiah(spent)}</span></div>` : '';
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+            <div class="section-card">
+                <div class="section-header">
+                    <h3>🔵 Tabungan & Investasi</h3>
+                    <span style="font-size:0.8rem;color:var(--text-light)">${formatRupiah(savingsSpent)} / ${formatRupiah(savingsLimit)}</span>
+                </div>
+                <div class="budget-category">
+                    <div class="bc-bar"><div class="bc-fill blue" style="width:${savingsLimit > 0 ? Math.min(Math.round(savingsSpent/savingsLimit*100), 100) : 0}%"></div></div>
+                </div>
+            </div>
+        `;
+    }
 
     // Show wallets
     const wmList = document.querySelector('.wallet-mini-list');
@@ -723,6 +822,19 @@ async function loadBudgetPage() {
                     <span class="wm-amount">${formatRupiah(w.balance || 0)}</span>
                 </div>
             `).join('');
+        }
+    }
+}
+
+// Set Budget
+function setBudget() {
+    const current = getLocalData('budgetSettings');
+    const amount = prompt('Masukkan total budget bulanan (Rp):', current.totalBudget || '0');
+    if (amount !== null) {
+        const parsed = parseRupiah(amount);
+        if (parsed > 0) {
+            setLocalData('budgetSettings', { totalBudget: parsed });
+            loadBudgetPage();
         }
     }
 }
