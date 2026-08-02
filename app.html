@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WLLT-e - Dashboard</title>
+    <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-wallet"></i>
+                <span>WLLT-e</span>
+            </div>
+            <button class="sidebar-close" id="sidebarClose"><i class="fas fa-times"></i></button>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-page="home">
+                <i class="fas fa-home"></i><span>Beranda</span>
+            </a>
+            <a href="#" class="nav-item" data-page="wallets">
+                <i class="fas fa-wallet"></i><span>Dompet</span>
+            </a>
+            <a href="#" class="nav-item" data-page="transactions">
+                <i class="fas fa-exchange-alt"></i><span>Transaksi</span>
+            </a>
+            <a href="#" class="nav-item" data-page="budget">
+                <i class="fas fa-chart-pie"></i><span>Anggaran</span>
+            </a>
+            <a href="#" class="nav-item" data-page="goals">
+                <i class="fas fa-bullseye"></i><span>Tujuan Keuangan</span>
+            </a>
+            <a href="#" class="nav-item" data-page="assets">
+                <i class="fas fa-gem"></i><span>Aset</span>
+            </a>
+            <a href="#" class="nav-item" data-page="debts">
+                <i class="fas fa-hand-holding-usd"></i><span>Hutang</span>
+            </a>
+            <a href="#" class="nav-item" data-page="receivables">
+                <i class="fas fa-file-invoice-dollar"></i><span>Piutang</span>
+            </a>
+            <a href="#" class="nav-item" data-page="investments">
+                <i class="fas fa-chart-line"></i><span>Investasi</span>
+            </a>
+            <a href="#" class="nav-item" data-page="reports">
+                <i class="fas fa-chart-bar"></i><span>Laporan</span>
+            </a>
+            <a href="#" class="nav-item" data-page="settings">
+                <i class="fas fa-cog"></i><span>Pengaturan</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="avatar">R</div>
+                <div>
+                    <div class="user-name">Ricky</div>
+                    <div class="user-plan">Premium</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+                <h1 class="page-title" id="pageTitle">Beranda</h1>
+            </div>
+            <div class="topbar-right">
+                <div class="date-display">
+                    <i class="fas fa-calendar"></i>
+                    <span id="currentDate"></span>
+                </div>
+                <button class="btn-icon" id="notifBtn"><i class="fas fa-bell"></i><span class="badge-dot"></span></button>
+                <button class="btn-add" id="addTransactionBtn"><i class="fas fa-plus"></i> Transaksi</button>
+            </div>
+        </header>
+
+        <!-- Pages Container -->
+        <div class="pages-container">
+            <!-- HOME PAGE -->
+            <section class="page active" id="page-home">
+                <!-- Greeting -->
+                <div class="greeting-card">
+                    <div class="greeting-content">
+                        <h2>Selamat Siang, Ricky! 👋</h2>
+                        <p>Semangat mengatur keuanganmu hari ini ya! ✨</p>
+                    </div>
+                </div>
+
+                <!-- Today Overview -->
+                <div class="overview-card dark">
+                    <div class="overview-header">
+                        <span>⚡ SEKILAS HARI INI</span>
+                    </div>
+                    <div class="overview-amount">Rp 47.100.000</div>
+                    <div class="overview-sub">budget harian yang tersisa</div>
+                    <div class="overview-stats">
+                        <div class="os-item">
+                            <span class="os-label">PEMASUKAN</span>
+                            <span class="os-value green">Rp 17.000.000</span>
+                        </div>
+                        <div class="os-divider"></div>
+                        <div class="os-item">
+                            <span class="os-label">PENGELUARAN</span>
+                            <span class="os-value red">Rp 4.040.000</span>
+                        </div>
+                    </div>
+                    <div class="overview-progress">
+                        <div class="op-bar"><div class="op-fill" style="width: 8%"></div></div>
+                        <span>Hari ke-31 / 31</span>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <button class="qa-btn" data-page="budget"><i class="fas fa-chart-pie"></i><span>Budget</span></button>
+                    <button class="qa-btn" data-page="goals"><i class="fas fa-bullseye"></i><span>Goals</span></button>
+                    <button class="qa-btn" data-page="assets"><i class="fas fa-gem"></i><span>Aset</span></button>
+                    <button class="qa-btn" data-page="debts"><i class="fas fa-hand-holding-usd"></i><span>Hutang</span></button>
+                    <button class="qa-btn" data-page="receivables"><i class="fas fa-file-invoice-dollar"></i><span>Piutang</span></button>
+                    <button class="qa-btn" data-page="investments"><i class="fas fa-chart-line"></i><span>Investasi</span></button>
+                    <button class="qa-btn" data-page="transactions"><i class="fas fa-exchange-alt"></i><span>Transaksi</span></button>
+                    <button class="qa-btn" data-page="reports"><i class="fas fa-chart-bar"></i><span>Laporan</span></button>
+                </div>
+
+                <!-- Scan Receipt -->
+                <div class="scan-card" onclick="openModal('scanModal')">
+                    <div class="scan-icon"><i class="fas fa-camera"></i></div>
+                    <div class="scan-text">
+                        <h4>Scan Struk</h4>
+                        <p>Foto struknya, isi otomatis ✨</p>
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+
+                <!-- Expense Progress -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3>📊 Progres Pengeluaran</h3>
+                        <span class="day-badge">Hari ke-11</span>
+                    </div>
+                    <div class="progress-list">
+                        <div class="progress-item">
+                            <div class="pi-header">
+                                <span class="pi-name">Kebutuhan</span>
+                                <span class="pi-pct">5%</span>
+                            </div>
+                            <div class="pi-bar"><div class="pi-fill green" style="width: 5%"></div></div>
+                            <span class="pi-status on-track">On Track ✓</span>
+                        </div>
+                        <div class="progress-item">
+                            <div class="pi-header">
+                                <span class="pi-name">Keinginan</span>
+                                <span class="pi-pct">4%</span>
+                            </div>
+                            <div class="pi-bar"><div class="pi-fill orange" style="width: 4%"></div></div>
+                            <span class="pi-status controlled">Terkendali ✓</span>
+                        </div>
+                        <div class="progress-item">
+                            <div class="pi-header">
+                                <span class="pi-name">Tabungan</span>
+                                <span class="pi-pct">5%</span>
+                            </div>
+                            <div class="pi-bar"><div class="pi-fill blue" style="width: 5%"></div></div>
+                            <span class="pi-status on-track">On Track ✓</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Largest Expenses -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3>💸 Pengeluaran Terbesar</h3>
+                    </div>
+                    <div class="expense-list">
+                        <div class="expense-item">
+                            <div class="ei-icon housing"><i class="fas fa-home"></i></div>
+                            <div class="ei-info">
+                                <span class="ei-name">Housing</span>
+                                <div class="ei-bar"><div class="ei-fill" style="width: 87%"></div></div>
+                            </div>
+                            <span class="ei-amount">Rp 3.500.000</span>
+                            <span class="ei-pct">87%</span>
+                        </div>
+                        <div class="expense-item">
+                            <div class="ei-icon shopping"><i class="fas fa-shopping-bag"></i></div>
+                            <div class="ei-info">
+                                <span class="ei-name">Shopping</span>
+                                <div class="ei-bar"><div class="ei-fill orange" style="width: 9%"></div></div>
+                            </div>
+                            <span class="ei-amount">Rp 375.000</span>
+                            <span class="ei-pct">9%</span>
+                        </div>
+                        <div class="expense-item">
+                            <div class="ei-icon food"><i class="fas fa-utensils"></i></div>
+                            <div class="ei-info">
+                                <span class="ei-name">Food & Dining</span>
+                                <div class="ei-bar"><div class="ei-fill blue" style="width: 4%"></div></div>
+                            </div>
+                            <span class="ei-amount">Rp 165.000</span>
+                            <span class="ei-pct">4%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upcoming Due -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3>📅 Jatuh Tempo</h3>
+                        <a href="#" class="see-all" data-page="debts">Lihat Semua →</a>
+                    </div>
+                    <div class="due-list">
+                        <div class="due-item urgent">
+                            <div class="due-info">
+                                <span class="due-name">Pinjaman Uang Darurat</span>
+                                <span class="due-date">5 Jul 2026</span>
+                            </div>
+                            <span class="due-amount red">Rp 1.500.000</span>
+                        </div>
+                        <div class="due-item">
+                            <div class="due-info">
+                                <span class="due-name">KPR Rumah BCA</span>
+                                <span class="due-date">10 Jul 2026</span>
+                            </div>
+                            <span class="due-amount">Rp 2.900.000</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- WALLETS PAGE -->
+            <section class="page" id="page-wallets">
+                <div class="page-header">
+                    <h2>Dompet Saya</h2>
+                    <button class="btn-primary-sm" onclick="openModal('addWalletModal')"><i class="fas fa-plus"></i> Tambah Baru</button>
+                </div>
+                <p class="page-desc">Atur semua sumber uangmu.</p>
+
+                <div class="wallet-balance-card">
+                    <div class="wbc-label">TOTAL SALDO</div>
+                    <div class="wbc-amount">Rp 47.100.000</div>
+                    <div class="wbc-sub">4 dompet aktif</div>
+                </div>
+
+                <div class="wallet-section">
+                    <h3 class="ws-title">SALDO & TABUNGAN</h3>
+                    <div class="wallet-list">
+                        <div class="wallet-item">
+                            <div class="wi-icon bank"><i class="fas fa-university"></i></div>
+                            <div class="wi-info">
+                                <span class="wi-name">Bank BCA</span>
+                                <span class="wi-detail">••••7890</span>
+                            </div>
+                            <span class="wi-amount">Rp 28.500.000</span>
+                            <div class="wi-actions">
+                                <button class="btn-icon-sm"><i class="fas fa-pen"></i></button>
+                                <button class="btn-icon-sm red"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="wallet-item">
+                            <div class="wi-icon gopay"><i class="fas fa-mobile-alt"></i></div>
+                            <div class="wi-info">
+                                <span class="wi-name">GoPay</span>
+                                <span class="wi-detail">E-Wallet</span>
+                            </div>
+                            <span class="wi-amount">Rp 2.150.000</span>
+                            <div class="wi-actions">
+                                <button class="btn-icon-sm"><i class="fas fa-pen"></i></button>
+                                <button class="btn-icon-sm red"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="wallet-item">
+                            <div class="wi-icon mandiri"><i class="fas fa-university"></i></div>
+                            <div class="wi-info">
+                                <span class="wi-name">Bank Mandiri</span>
+                                <span class="wi-detail">••••4321</span>
+                            </div>
+                            <span class="wi-amount">Rp 15.800.000</span>
+                            <div class="wi-actions">
+                                <button class="btn-icon-sm"><i class="fas fa-pen"></i></button>
+                                <button class="btn-icon-sm red"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="wallet-item">
+                            <div class="wi-icon cash"><i class="fas fa-money-bill-wave"></i></div>
+                            <div class="wi-info">
+                                <span class="wi-name">Dompet Tunai</span>
+                                <span class="wi-detail">Cash</span>
+                            </div>
+                            <span class="wi-amount">Rp 650.000</span>
+                            <div class="wi-actions">
+                                <button class="btn-icon-sm"><i class="fas fa-pen"></i></button>
+                                <button class="btn-icon-sm red"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transfer -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3>🔄 Transfer Dana</h3>
+                    </div>
+                    <div class="transfer-form">
+                        <div class="tf-row">
+                            <label>Dari Dompet</label>
+                            <select class="tf-select">
+                                <option>Bank BCA (Rp 28.500.000)</option>
+                                <option>GoPay (Rp 2.150.000)</option>
+                                <option>Bank Mandiri (Rp 15.800.000)</option>
+                                <option>Dompet Tunai (Rp 650.000)</option>
+                            </select>
+                        </div>
+                        <div class="tf-row">
+                            <label>Ke Dompet</label>
+                            <select class="tf-select">
+                                <option>GoPay (Rp 2.150.000)</option>
+                                <option>Bank Mandiri (Rp 15.800.000)</option>
+                                <option>Dompet Tunai (Rp 650.000)</option>
+                            </select>
+                        </div>
+                        <div class="tf-row">
+                            <label>Nominal</label>
+                            <input type="text" class="tf-input" placeholder="Rp 0" value="Rp 2.500.000">
+                        </div>
+                        <div class="tf-row">
+                            <label>Tanggal</label>
+                            <input type="date" class="tf-input" value="2026-07-04">
+                        </div>
+                        <button class="btn-primary-full">Transfer Sekarang</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TRANSACTIONS PAGE -->
+            <section class="page" id="page-transactions">
+                <div class="page-header">
+                    <h2>Transaksi</h2>
+                    <div class="ph-actions">
+                        <button class="btn-outline-sm" onclick="openModal('scanModal')"><i class="fas fa-camera"></i></button>
+                        <button class="btn-primary-sm" onclick="openModal('addTransactionModal')"><i class="fas fa-plus"></i> Transaksi</button>
+                    </div>
+                </div>
+
+                <div class="filter-bar">
+                    <div class="fb-group">
+                        <label><i class="fas fa-calendar"></i> Filter</label>
+                        <input type="date" value="2026-07-01">
+                        <span>s/d</span>
+                        <input type="date" value="2026-07-31">
+                    </div>
+                    <div class="fb-group">
+                        <input type="text" class="fb-search" placeholder="Cari data...">
+                        <button class="btn-reset"><i class="fas fa-redo"></i> Reset</button>
+                    </div>
+                </div>
+
+                <div class="transaction-list">
+                    <div class="tx-group">
+                        <div class="tx-date">
+                            <span>24 JUL 2026</span>
+                            <span class="tx-total green">+Rp 14.500.000</span>
+                        </div>
+                        <div class="tx-item">
+                            <div class="txi-icon salary"><i class="fas fa-money-bill-wave"></i></div>
+                            <div class="txi-info">
+                                <span class="txi-name">Gaji Bulanan Juli</span>
+                                <span class="txi-source">Bank BCA • Salary</span>
+                            </div>
+                            <span class="txi-amount green">+Rp 14.500.000</span>
+                        </div>
+                    </div>
+                    <div class="tx-group">
+                        <div class="tx-date">
+                            <span>23 JUL 2026</span>
+                            <span class="tx-total red">-Rp 3.500.000</span>
+                        </div>
+                        <div class="tx-item">
+                            <div class="txi-icon housing"><i class="fas fa-home"></i></div>
+                            <div class="txi-info">
+                                <span class="txi-name">Bayar Kos Juli</span>
+                                <span class="txi-source">Bank BCA • Housing</span>
+                            </div>
+                            <span class="txi-amount red">-Rp 3.500.000</span>
+                        </div>
+                    </div>
+                    <div class="tx-group">
+                        <div class="tx-date">
+                            <span>22 JUL 2026</span>
+                            <span class="tx-total red">-Rp 45.000</span>
+                        </div>
+                        <div class="tx-item">
+                            <div class="txi-icon food"><i class="fas fa-utensils"></i></div>
+                            <div class="txi-info">
+                                <span class="txi-name">Makan Siang Warteg</span>
+                                <span class="txi-source">Dompet Tunai • Food & Dining</span>
+                            </div>
+                            <span class="txi-amount red">-Rp 45.000</span>
+                        </div>
+                    </div>
+                    <div class="tx-group">
+                        <div class="tx-date">
+                            <span>20 JUL 2026</span>
+                            <span class="tx-total red">-Rp 375.000</span>
+                        </div>
+                        <div class="tx-item">
+                            <div class="txi-icon shopping"><i class="fas fa-shopping-bag"></i></div>
+                            <div class="txi-info">
+                                <span class="txi-name">Celana Jeans Uniqlo</span>
+                                <span class="txi-source">Bank BCA • Shopping</span>
+                            </div>
+                            <span class="txi-amount red">-Rp 375.000</span>
+                        </div>
+                    </div>
+                    <div class="tx-group">
+                        <div class="tx-date">
+                            <span>15 JUL 2026</span>
+                            <span class="tx-total red">-Rp 120.000</span>
+                        </div>
+                        <div class="tx-item">
+                            <div class="txi-icon food"><i class="fas fa-utensils"></i></div>
+                            <div class="txi-info">
+                                <span class="txi-name">Makan Siang KFC</span>
+                                <span class="txi-source">GoPay • Food & Dining</span>
+                            </div>
+                            <span class="txi-amount red">-Rp 120.000</span>
+                        </div>
+                    </div>
+                    <div class="tx-group">
+                        <div class="tx-date">
+                            <span>10 JUL 2026</span>
+                            <span class="tx-total green">+Rp 2.500.000</span>
+                        </div>
+                        <div class="tx-item">
+                            <div class="txi-icon freelance"><i class="fas fa-laptop-code"></i></div>
+                            <div class="txi-info">
+                                <span class="txi-name">Freelance Project</span>
+                                <span class="txi-source">Bank BCA • Freelance</span>
+                            </div>
+                            <span class="txi-amount green">+Rp 2.500.000</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- BUDGET PAGE -->
+            <section class="page" id="page-budget">
+                <div class="page-header">
+                    <h2>Anggaran</h2>
+                    <div class="ph-actions">
+                        <span class="date-range"><i class="fas fa-calendar"></i> 1 Jul - 31 Jul 2026</span>
+                    </div>
+                </div>
+
+                <div class="budget-overview dark">
+                    <div class="bo-label">SISA BUDGET BISA DIPAKAI</div>
+                    <div class="bo-amount">Rp 43.060.000</div>
+                    <div class="bo-sub">dari Rp 47.100.000 Total Budget • Rp 4.040.000 Terpakai</div>
+                    <div class="bo-bar"><div class="bo-fill" style="width: 8%"></div></div>
+                    <div class="bo-info">Sisa batas aman harian ~Rp 43.060.000/hari sampai gajian (1 hari)</div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3>💰 Dompet Aktif</h3>
+                        <a href="#" class="see-all" data-page="wallets">Kelola →</a>
+                    </div>
+                    <div class="wallet-mini-list">
+                        <div class="wm-item">
+                            <div class="wm-icon"><i class="fas fa-university"></i></div>
+                            <div class="wm-info">
+                                <span class="wm-name">Bank BCA</span>
+                                <span class="wm-type">BANK</span>
+                            </div>
+                            <span class="wm-amount">Rp 28.500.000</span>
+                        </div>
+                        <div class="wm-item">
+                            <div class="wm-icon gopay"><i class="fas fa-mobile-alt"></i></div>
+                            <div class="wm-info">
+                                <span class="wm-name">GoPay</span>
+                                <span class="wm-type">E-WALLET</span>
+                            </div>
+                            <span class="wm-amount">Rp 2.150.000</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3>🟣 Kebutuhan</h3>
+                        <button class="btn-outline-xs"><i class="fas fa-cog"></i> UBAH</button>
+                    </div>
+                    <div class="budget-category">
+                        <div class="bc-header">
+                            <span class="bc-spent">TERPAKAI: Rp 3.665.000</span>
+                            <span class="bc-limit">BATAS: Rp 23.550.000 (50%)</span>
+                        </div>
+                        <div class="bc-bar"><div class="bc-fill" style="width: 15%"></div></div>
+                        <div class="bc-items">
+                            <div class="bci-row">
+                                <span><i class="fas fa-home"></i> Housing</span>
+                                <span>Rp 3.500.000 / Rp 7.000.000</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3>🟠 Keinginan</h3>
+                        <button class="btn-outline-xs"><i class="fas fa-cog"></i> UBAH</button>
+                    </div>
+                    <div class="budget-category">
+                        <div class="bc-header">
+                            <span class="bc-spent">TERPAKAI: Rp 375.000</span>
+                            <span class="bc-limit">BATAS: Rp 14.130.000 (30%)</span>
+                        </div>
+                        <div class="bc-bar"><div class="bc-fill orange" style="width: 3%"></div></div>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3>🔵 Tabungan & Investasi</h3>
+                        <button class="btn-outline-xs"><i class="fas fa-cog"></i> UBAH</button>
+                    </div>
+                    <div class="budget-category">
+                        <div class="bc-header">
+                            <span class="bc-spent">TERPAKAI: Rp 0</span>
+                            <span class="bc-limit">BATAS: Rp 9.420.000 (20%)</span>
+                        </div>
+                        <div class="bc-bar"><div class="bc-fill blue" style="width: 0%"></div></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- GOALS PAGE -->
+            <section class="page" id="page-goals">
+                <div class="page-header">
+                    <h2>Tujuan Keuangan</h2>
+                    <button class="btn-primary-sm" onclick="openModal('addGoalModal')"><i class="fas fa-plus"></i> Goal Baru</button>
+                </div>
+
+                <div class="goals-grid">
+                    <div class="goal-card">
+                        <div class="gc-header">
+                            <div class="gc-icon emergency"><i class="fas fa-shield-halved"></i></div>
+                            <div class="gc-info">
+                                <h4>Dana Darurat 6 Bulan</h4>
+                                <span class="gc-date">Target: 31 Des 2026</span>
+                            </div>
+                            <span class="gc-pct">42%</span>
+                        </div>
+                        <div class="gc-progress">
+                            <div class="gc-bar"><div class="gc-fill" style="width: 42%"></div></div>
+                        </div>
+                        <div class="gc-details">
+                            <div class="gc-detail">
+                                <span class="gc-label">Terkumpul</span>
+                                <span class="gc-value">Rp 25.000.000</span>
+                            </div>
+                            <div class="gc-detail">
+                                <span class="gc-label">Target</span>
+                                <span class="gc-value">Rp 60.000.000</span>
+                            </div>
+                        </div>
+                        <div class="gc-actions">
+                            <button class="btn-green"><i class="fas fa-plus"></i> Tambah Dana</button>
+                            <button class="btn-outline-sm"><i class="fas fa-minus"></i> Tarik Dana</button>
+                        </div>
+                    </div>
+
+                    <div class="goal-card">
+                        <div class="gc-header">
+                            <div class="gc-icon travel"><i class="fas fa-plane"></i></div>
+                            <div class="gc-info">
+                                <h4>Liburan ke Jepang</h4>
+                                <span class="gc-date">Target: 30 Mei 2027</span>
+                            </div>
+                            <span class="gc-pct">34%</span>
+                        </div>
+                        <div class="gc-progress">
+                            <div class="gc-bar"><div class="gc-fill orange" style="width: 34%"></div></div>
+                        </div>
+                        <div class="gc-details">
+                            <div class="gc-detail">
+                                <span class="gc-label">Terkumpul</span>
+                                <span class="gc-value">Rp 8.500.000</span>
+                            </div>
+                            <div class="gc-detail">
+                                <span class="gc-label">Target</span>
+                                <span class="gc-value">Rp 25.000.000</span>
+                            </div>
+                        </div>
+                        <div class="gc-info-text">Kamu perlu nabung Rp 1.178.572 / bulan</div>
+                        <div class="gc-actions">
+                            <button class="btn-green"><i class="fas fa-plus"></i> Tambah Dana</button>
+                            <button class="btn-outline-sm"><i class="fas fa-minus"></i> Tarik Dana</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ASSETS PAGE -->
+            <section class="page" id="page-assets">
+                <div class="page-header">
+                    <h2>Aset</h2>
+                    <button class="btn-primary-sm"><i class="fas fa-plus"></i> Tambah Aset</button>
+                </div>
+
+                <div class="asset-summary dark">
+                    <div class="as-main">
+                        <div class="as-label">Estimasi Kekayaan</div>
+                        <div class="as-amount">Rp 620.600.976</div>
+                    </div>
+                    <div class="as-stats">
+                        <div class="as-stat">
+                            <span class="as-stat-label">Total Runway</span>
+                            <span class="as-stat-value">58.3 Bulan</span>
+                        </div>
+                        <div class="as-stat">
+                            <span class="as-stat-label">Level</span>
+                            <span class="as-stat-value">Mapan</span>
+                        </div>
+                    </div>
+                    <div class="as-level">
+                        <div class="as-level-bar"><div class="as-level-fill" style="width: 62%"></div></div>
+                        <span>Target: Rp 1.000.000.000</span>
+                    </div>
+                </div>
+
+                <div class="asset-breakdown">
+                    <div class="ab-item">
+                        <span class="ab-icon"><i class="fas fa-wallet"></i></span>
+                        <span class="ab-name">Dompet & Rekening</span>
+                        <span class="ab-amount">Rp 77.000.000</span>
+                    </div>
+                    <div class="ab-item">
+                        <span class="ab-icon liquid"><i class="fas fa-coins"></i></span>
+                        <span class="ab-name">Aset Likuid</span>
+                        <span class="ab-amount">Rp 37.500.000</span>
+                    </div>
+                    <div class="ab-item">
+                        <span class="ab-icon fixed"><i class="fas fa-home"></i></span>
+                        <span class="ab-name">Aset Tetap</span>
+                        <span class="ab-amount">Rp 474.000.000</span>
+                    </div>
+                    <div class="ab-item debt">
+                        <span class="ab-icon debt"><i class="fas fa-credit-card"></i></span>
+                        <span class="ab-name">Hutang</span>
+                        <span class="ab-amount red">-Rp 325.000.000</span>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header"><h3>💎 Aset Likuid</h3></div>
+                    <div class="asset-list">
+                        <div class="asset-item">
+                            <div class="ai-icon gold"><i class="fas fa-ring"></i></div>
+                            <div class="ai-info">
+                                <span class="ai-name">Emas Antam 10g</span>
+                                <span class="ai-type">Logam Mulia</span>
+                            </div>
+                            <span class="ai-amount">Rp 12.500.000</span>
+                        </div>
+                        <div class="asset-item">
+                            <div class="ai-icon blue"><i class="fas fa-chart-area"></i></div>
+                            <div class="ai-info">
+                                <span class="ai-name">Reksa Dana Pasar Uang</span>
+                                <span class="ai-type">Investasi</span>
+                            </div>
+                            <span class="ai-amount">Rp 5.000.000</span>
+                        </div>
+                        <div class="asset-item">
+                            <div class="ai-icon green"><i class="fas fa-university"></i></div>
+                            <div class="ai-info">
+                                <span class="ai-name">Deposito BCA</span>
+                                <span class="ai-type">Tabungan</span>
+                            </div>
+                            <span class="ai-amount">Rp 20.000.000</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header"><h3>🏠 Aset Tetap</h3></div>
+                    <div class="asset-list">
+                        <div class="asset-item">
+                            <div class="ai-icon house"><i class="fas fa-home"></i></div>
+                            <div class="ai-info">
+                                <span class="ai-name">Rumah KPR Bekasi</span>
+                                <span class="ai-type">Properti</span>
+                            </div>
+                            <span class="ai-amount">Rp 450.000.000</span>
+                        </div>
+                        <div class="asset-item">
+                            <div class="ai-icon motor"><i class="fas fa-motorcycle"></i></div>
+                            <div class="ai-info">
+                                <span class="ai-name">Motor Honda Vario 160</span>
+                                <span class="ai-type">Kendaraan</span>
+                            </div>
+                            <span class="ai-amount">Rp 24.000.000</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DEBTS PAGE -->
+            <section class="page" id="page-debts">
+                <div class="page-header">
+                    <h2>Hutang</h2>
+                    <button class="btn-primary-sm" onclick="openModal('addDebtModal')"><i class="fas fa-plus"></i> Tambah Hutang</button>
+                </div>
+                <p class="page-desc">Kelola dan pantau cicilan hutang kamu</p>
+
+                <div class="debt-summary">
+                    <div class="ds-main">
+                        <div class="ds-label">TOTAL SISA HUTANG</div>
+                        <div class="ds-amount">Rp 288.000.000</div>
+                    </div>
+                    <div class="ds-progress">
+                        <div class="ds-bar"><div class="ds-fill" style="width: 23%"></div></div>
+                        <div class="ds-info">
+                            <span>PROGRES PELUNASAN: Rp 86.000.000 terbayar</span>
+                        </div>
+                    </div>
+                    <div class="ds-stats">
+                        <div class="ds-stat">
+                            <span class="ds-stat-label">TOTAL POKOK</span>
+                            <span class="ds-stat-value">Rp 374.000.000</span>
+                        </div>
+                        <div class="ds-stat">
+                            <span class="ds-stat-label">CICILAN / BULAN</span>
+                            <span class="ds-stat-value">Rp 3.800.000</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-tabs">
+                    <button class="ft-tab active">Aktif (2)</button>
+                    <button class="ft-tab">Lunas (0)</button>
+                    <button class="ft-tab">Semua (2)</button>
+                </div>
+
+                <div class="debt-list">
+                    <div class="debt-card">
+                        <div class="dc-header">
+                            <div class="dc-icon"><i class="fas fa-home"></i></div>
+                            <div class="dc-info">
+                                <h4>KPR Bank Mandiri</h4>
+                                <span class="dc-type">Cicilan</span>
+                            </div>
+                        </div>
+                        <div class="dc-details">
+                            <div class="dc-row">
+                                <span>Sisa Hutang</span>
+                                <span class="dc-value">Rp 280.000.000</span>
+                            </div>
+                            <div class="dc-row">
+                                <span>Cicilan / Bulan</span>
+                                <span class="dc-value">Rp 2.800.000</span>
+                            </div>
+                        </div>
+                        <div class="dc-progress">
+                            <div class="dc-bar"><div class="dc-fill" style="width: 20%"></div></div>
+                            <span>20% lunas</span>
+                        </div>
+                        <button class="btn-pay"><i class="fas fa-money-bill-wave"></i> Bayar</button>
+                    </div>
+
+                    <div class="debt-card">
+                        <div class="dc-header">
+                            <div class="dc-icon motor"><i class="fas fa-motorcycle"></i></div>
+                            <div class="dc-info">
+                                <h4>Cicilan Motor Vario</h4>
+                                <span class="dc-type">Cicilan</span>
+                            </div>
+                        </div>
+                        <div class="dc-details">
+                            <div class="dc-row">
+                                <span>Sisa Hutang</span>
+                                <span class="dc-value">Rp 8.000.000</span>
+                            </div>
+                            <div class="dc-row">
+                                <span>Cicilan / Bulan</span>
+                                <span class="dc-value">Rp 1.000.000</span>
+                            </div>
+                        </div>
+                        <div class="dc-progress">
+                            <div class="dc-bar"><div class="dc-fill green" style="width: 67%"></div></div>
+                            <span>67% lunas</span>
+                        </div>
+                        <button class="btn-pay"><i class="fas fa-money-bill-wave"></i> Bayar</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RECEIVABLES PAGE -->
+            <section class="page" id="page-receivables">
+                <div class="page-header">
+                    <h2>Piutang</h2>
+                    <button class="btn-primary-sm"><i class="fas fa-plus"></i> Tambah Piutang</button>
+                </div>
+                <p class="page-desc">Kelola uang yang dipinjamkan ke orang lain</p>
+
+                <div class="receivable-summary">
+                    <div class="rs-main">
+                        <div class="rs-label">TOTAL PIUTANG AKTIF</div>
+                        <div class="rs-amount">Rp 5.000.000</div>
+                    </div>
+                    <div class="rs-progress">
+                        <div class="rs-bar"><div class="rs-fill" style="width: 23%"></div></div>
+                        <span>PROGRES PENAGIHAN: Rp 1.500.000 terkumpul</span>
+                    </div>
+                    <div class="rs-stats">
+                        <div class="rs-stat">
+                            <span class="rs-stat-label">TOTAL DIPINJAMKAN</span>
+                            <span class="rs-stat-value">Rp 6.500.000</span>
+                        </div>
+                        <div class="rs-stat">
+                            <span class="rs-stat-label">TERKUMPUL</span>
+                            <span class="rs-stat-value">Rp 1.500.000</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-tabs">
+                    <button class="ft-tab active">Aktif (2)</button>
+                    <button class="ft-tab">Lunas (0)</button>
+                    <button class="ft-tab">Semua (2)</button>
+                </div>
+
+                <div class="receivable-list">
+                    <div class="receivable-card">
+                        <div class="rc-header">
+                            <h4>Modal Warung Kelontong</h4>
+                        </div>
+                        <div class="rc-row">
+                            <span>Peminjam</span>
+                            <span class="rc-value">Budi</span>
+                        </div>
+                        <div class="rc-row">
+                            <span>Sisa Piutang</span>
+                            <span class="rc-value">Rp 3.500.000</span>
+                        </div>
+                        <div class="rc-row">
+                            <span>Jatuh Tempo</span>
+                            <span class="rc-value">20 Agu 2026</span>
+                        </div>
+                        <div class="rc-progress">
+                            <div class="rc-bar"><div class="rc-fill" style="width: 30%"></div></div>
+                            <span>Terkumpul: Rp 1.500.000 / Rp 5.000.000</span>
+                        </div>
+                        <button class="btn-green"><i class="fas fa-hand-holding-usd"></i> Terima Pembayaran</button>
+                    </div>
+
+                    <div class="receivable-card">
+                        <div class="rc-header">
+                            <h4>Pinjaman Uang Darurat</h4>
+                        </div>
+                        <div class="rc-row">
+                            <span>Peminjam</span>
+                            <span class="rc-value">Ani</span>
+                        </div>
+                        <div class="rc-row">
+                            <span>Sisa Piutang</span>
+                            <span class="rc-value">Rp 1.500.000</span>
+                        </div>
+                        <div class="rc-row">
+                            <span>Jatuh Tempo</span>
+                            <span class="rc-value red">5 Jul 2026</span>
+                        </div>
+                        <div class="rc-progress">
+                            <div class="rc-bar"><div class="rc-fill red" style="width: 0%"></div></div>
+                            <span>Terkumpul: Rp 0 / Rp 1.500.000</span>
+                        </div>
+                        <button class="btn-green"><i class="fas fa-hand-holding-usd"></i> Terima Pembayaran</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- INVESTMENTS PAGE -->
+            <section class="page" id="page-investments">
+                <div class="page-header">
+                    <h2>Investasi</h2>
+                    <button class="btn-primary-sm"><i class="fas fa-plus"></i> Tambah Investasi</button>
+                </div>
+
+                <div class="investment-summary dark">
+                    <div class="is-label">Portofolio Investasi</div>
+                    <div class="is-amount">Rp 32.078.376</div>
+                    <div class="is-profit green">
+                        <i class="fas fa-arrow-up"></i> +Rp 3.558.876 (+12.48%)
+                    </div>
+                    <div class="is-sub">Total Keuntungan</div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header"><h3>📈 Daftar Investasi</h3></div>
+                    <div class="investment-list">
+                        <div class="investment-item">
+                            <div class="ii-icon stock"><i class="fas fa-chart-line"></i></div>
+                            <div class="ii-info">
+                                <span class="ii-name">BBCA - Bank Central Asia</span>
+                                <span class="ii-type">Saham</span>
+                            </div>
+                            <div class="ii-data">
+                                <span class="ii-amount">Rp 12.500.000</span>
+                                <span class="ii-change green">+25%</span>
+                            </div>
+                        </div>
+                        <div class="investment-item">
+                            <div class="ii-icon stock"><i class="fas fa-chart-line"></i></div>
+                            <div class="ii-info">
+                                <span class="ii-name">BBRI - Bank Rakyat Indonesia</span>
+                                <span class="ii-type">Saham</span>
+                            </div>
+                            <div class="ii-data">
+                                <span class="ii-amount">Rp 5.800.000</span>
+                                <span class="ii-change green">+16%</span>
+                            </div>
+                        </div>
+                        <div class="investment-item">
+                            <div class="ii-icon crypto"><i class="fab fa-bitcoin"></i></div>
+                            <div class="ii-info">
+                                <span class="ii-name">Bitcoin (BTC)</span>
+                                <span class="ii-type">Crypto</span>
+                            </div>
+                            <div class="ii-data">
+                                <span class="ii-amount">Rp 3.428.376</span>
+                                <span class="ii-change green">+14%</span>
+                            </div>
+                        </div>
+                        <div class="investment-item">
+                            <div class="ii-icon bond"><i class="fas fa-file-contract"></i></div>
+                            <div class="ii-info">
+                                <span class="ii-name">Obligasi Negara FR0098</span>
+                                <span class="ii-type">Obligasi</span>
+                            </div>
+                            <div class="ii-data">
+                                <span class="ii-amount">Rp 10.350.000</span>
+                                <span class="ii-change green">+4%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header"><h3>📊 Alokasi Portofolio</h3></div>
+                    <canvas id="portfolioChart" height="200"></canvas>
+                </div>
+            </section>
+
+            <!-- REPORTS PAGE -->
+            <section class="page" id="page-reports">
+                <div class="page-header">
+                    <h2>Laporan</h2>
+                    <div class="ph-actions">
+                        <span class="date-range"><i class="fas fa-calendar"></i> Juli 2026</span>
+                    </div>
+                </div>
+
+                <div class="health-score-card dark">
+                    <div class="hsc-header">
+                        <span>KESEHATAN FINANSIAL</span>
+                        <span class="hsc-status unhealthy">KURANG SEHAT</span>
+                    </div>
+                    <div class="hsc-score">
+                        <span class="hsc-number">58</span>
+                        <span class="hsc-max">/100</span>
+                    </div>
+                    <p class="hsc-desc">Skor rasio tabungan, disiplin anggaran, runway, dan beban utang.</p>
+                    <div class="hsc-metrics">
+                        <div class="hsc-metric">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span class="hsc-metric-value">0%</span>
+                            <span class="hsc-metric-label">Tabungan</span>
+                        </div>
+                        <div class="hsc-metric">
+                            <i class="fas fa-wallet"></i>
+                            <span class="hsc-metric-value">75%</span>
+                            <span class="hsc-metric-label">Disiplin</span>
+                        </div>
+                        <div class="hsc-metric">
+                            <i class="fas fa-shield-halved"></i>
+                            <span class="hsc-metric-value">14.8 BLN</span>
+                            <span class="hsc-metric-label">Runway</span>
+                        </div>
+                        <div class="hsc-metric">
+                            <i class="fas fa-credit-card"></i>
+                            <span class="hsc-metric-value">78%</span>
+                            <span class="hsc-metric-label">Beban Utang</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="report-cards">
+                    <div class="report-card">
+                        <div class="rc-label">TOTAL SALDO</div>
+                        <div class="rc-amount">Rp 47.100.000</div>
+                        <div class="rc-change green"><i class="fas fa-arrow-up"></i> 100% dari bulan lalu</div>
+                    </div>
+                    <div class="report-card">
+                        <div class="rc-label">TOTAL PEMASUKAN</div>
+                        <div class="rc-amount green">Rp 17.000.000</div>
+                        <div class="rc-change green"><i class="fas fa-arrow-up"></i> 100%</div>
+                    </div>
+                    <div class="report-card">
+                        <div class="rc-label">TOTAL PENGELUARAN</div>
+                        <div class="rc-amount red">Rp 4.040.000</div>
+                        <div class="rc-change red"><i class="fas fa-arrow-down"></i> 15%</div>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header"><h3>📊 Grafik Pengeluaran Bulanan</h3></div>
+                    <canvas id="expenseChart" height="250"></canvas>
+                </div>
+            </section>
+
+            <!-- SETTINGS PAGE -->
+            <section class="page" id="page-settings">
+                <div class="page-header">
+                    <h2>Pengaturan</h2>
+                    <button class="btn-primary-sm"><i class="fas fa-save"></i> Simpan Perubahan</button>
+                </div>
+
+                <div class="settings-tabs">
+                    <button class="st-tab active"><i class="fas fa-user"></i> Profil</button>
+                    <button class="st-tab"><i class="fas fa-palette"></i> Tema</button>
+                    <button class="st-tab"><i class="fas fa-sync"></i> Berulang</button>
+                    <button class="st-tab"><i class="fas fa-camera"></i> Scan</button>
+                    <button class="st-tab"><i class="fas fa-info-circle"></i> Tentang</button>
+                </div>
+
+                <div class="settings-content">
+                    <div class="section-card">
+                        <div class="section-header"><h3>👤 Profil Pengguna</h3></div>
+                        <div class="settings-form">
+                            <div class="sf-row">
+                                <label>Nama</label>
+                                <input type="text" value="Ricky">
+                            </div>
+                            <div class="sf-row">
+                                <label>Email</label>
+                                <input type="email" value="ricky@email.com">
+                            </div>
+                            <div class="sf-row">
+                                <label>Mata Uang</label>
+                                <select>
+                                    <option selected>IDR (Rp)</option>
+                                    <option>USD ($)</option>
+                                    <option>EUR (€)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-card">
+                        <div class="section-header"><h3>🔄 Berulang & Langganan</h3></div>
+                        <p class="page-desc">Lacak pengeluaran rutin bulanan, langganan aplikasi</p>
+                        <div class="subscription-stats">
+                            <div class="ss-item">
+                                <span class="ss-label">Total Biaya Langganan / Bulan</span>
+                                <span class="ss-value red">Rp 240.990</span>
+                            </div>
+                            <div class="ss-item">
+                                <span class="ss-label">Langganan Aktif</span>
+                                <span class="ss-value">2 Layanan</span>
+                            </div>
+                            <div class="ss-item">
+                                <span class="ss-label">Rata-rata Harian</span>
+                                <span class="ss-value">Rp 8.033</span>
+                            </div>
+                        </div>
+                        <div class="subscription-list">
+                            <div class="sub-item">
+                                <div class="sub-icon spotify"><i class="fab fa-spotify"></i></div>
+                                <div class="sub-info">
+                                    <span class="sub-name">Spotify Premium</span>
+                                    <span class="sub-detail">Entertainment • Mandiri • Bulanan</span>
+                                </div>
+                                <span class="sub-amount red">-Rp 54.990</span>
+                                <span class="sub-due">Jatuh Tempo: 08 Agu 2026</span>
+                                <div class="sub-actions">
+                                    <button class="btn-icon-sm"><i class="fas fa-pen"></i></button>
+                                    <button class="btn-icon-sm red"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                            <div class="sub-item">
+                                <div class="sub-icon netflix"><i class="fab fa-netflix"></i></div>
+                                <div class="sub-info">
+                                    <span class="sub-name">Netflix</span>
+                                    <span class="sub-detail">Entertainment • Mandiri • Bulanan</span>
+                                </div>
+                                <span class="sub-amount red">-Rp 186.000</span>
+                                <span class="sub-due">Jatuh Tempo: 22 Agu 2026</span>
+                                <div class="sub-actions">
+                                    <button class="btn-icon-sm"><i class="fas fa-pen"></i></button>
+                                    <button class="btn-icon-sm red"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn-primary-full"><i class="fas fa-plus"></i> Tambah Rutin</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- AI Chat Button -->
+    <button class="ai-chat-btn" id="aiChatBtn" onclick="toggleChat()">
+        <i class="fas fa-robot"></i>
+    </button>
+
+    <!-- AI Chat Panel -->
+    <div class="ai-chat-panel" id="aiChatPanel">
+        <div class="chat-header">
+            <div class="ch-info">
+                <div class="ch-avatar"><i class="fas fa-robot"></i></div>
+                <div>
+                    <span class="ch-name">WLLT-Ai 🤖</span>
+                    <span class="ch-powered">Powered by RSQUARE-Ai</span>
+                </div>
+            </div>
+            <button class="ch-close" onclick="toggleChat()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="msg bot">
+                <div class="msg-avatar"><i class="fas fa-robot"></i></div>
+                <div class="msg-content">
+                    <p>Halo Ricky! 👋 Saya WLLT-Ai, asisten keuanganmu. Ada yang bisa saya bantu hari ini?</p>
+                    <span class="msg-time">10:00</span>
+                </div>
+            </div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="chatInput" placeholder="Tanyakan atau ketik transaksi...">
+            <button class="ci-send" onclick="sendChat()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <!-- Add Transaction Modal -->
+    <div class="modal-overlay" id="addTransactionModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>New Transaction</h3>
+                <button class="modal-close" onclick="closeModal('addTransactionModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-tabs">
+                <button class="mt-tab"><i class="fas fa-arrow-up"></i> Pengeluaran</button>
+                <button class="mt-tab active"><i class="fas fa-money-bill-wave"></i> Pemasukan</button>
+                <button class="mt-tab"><i class="fas fa-exchange-alt"></i> Transfer</button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-amount">
+                    <span class="mb-currency">Rp</span>
+                    <input type="text" value="6.000.000" class="mb-amount-input">
+                </div>
+                <div class="mb-quick-amounts">
+                    <button>+500rb</button>
+                    <button>+1jt</button>
+                    <button>+2jt</button>
+                    <button>+5jt</button>
+                </div>
+                <div class="mb-field">
+                    <label><i class="fas fa-calendar"></i> TANGGAL & WAKTU</label>
+                    <input type="date" value="2026-07-31">
+                </div>
+                <div class="mb-field">
+                    <label><i class="fas fa-wallet"></i> DOMPET</label>
+                    <select>
+                        <option>Bank BCA</option>
+                        <option>GoPay</option>
+                        <option selected>Bank Mandiri</option>
+                        <option>Dompet Tunai</option>
+                    </select>
+                </div>
+                <div class="mb-field">
+                    <label><i class="fas fa-sticky-note"></i> DESKRIPSI</label>
+                    <input type="text" value="Pendapatan jual aplikasi">
+                </div>
+                <div class="mb-field">
+                    <label>DARI MANA?</label>
+                    <div class="mb-tags">
+                        <button class="tag">Salary</button>
+                        <button class="tag active">Freelance</button>
+                        <button class="tag">Investment</button>
+                        <button class="tag">Titipan</button>
+                        <button class="tag">Dana Darurat</button>
+                        <button class="tag">Warungku</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary-full">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan Modal -->
+    <div class="modal-overlay" id="scanModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Scan Struk</h3>
+                <button class="modal-close" onclick="closeModal('scanModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="scan-upload">
+                    <i class="fas fa-camera"></i>
+                    <p>Foto atau upload struk belanja</p>
+                    <button class="btn-outline-sm">Pilih File</button>
+                </div>
+                <div class="mb-field">
+                    <label><i class="fas fa-wallet"></i> PILIH DOMPET</label>
+                    <select>
+                        <option selected>Bank BCA</option>
+                        <option>GoPay</option>
+                        <option>Bank Mandiri</option>
+                    </select>
+                </div>
+                <div class="mb-field">
+                    <label><i class="fas fa-calendar"></i> TANGGAL</label>
+                    <input type="date" value="2026-05-21">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-outline-full">Scan Ulang</button>
+                <button class="btn-primary-full">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Goal Modal -->
+    <div class="modal-overlay" id="addGoalModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Tambah Goal Baru</h3>
+                <button class="modal-close" onclick="closeModal('addGoalModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-field">
+                    <label>Nama Tujuan</label>
+                    <input type="text" placeholder="Contoh: Dana Darurat">
+                </div>
+                <div class="mb-field">
+                    <label>Target Nominal</label>
+                    <input type="text" placeholder="Rp 0">
+                </div>
+                <div class="mb-field">
+                    <label>Target Tanggal</label>
+                    <input type="date">
+                </div>
+                <div class="mb-field">
+                    <label>Icon</label>
+                    <div class="mb-tags">
+                        <button class="tag active">🎯</button>
+                        <button class="tag">🏠</button>
+                        <button class="tag">✈️</button>
+                        <button class="tag">🚗</button>
+                        <button class="tag">💍</button>
+                        <button class="tag">📱</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary-full">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Debt Modal -->
+    <div class="modal-overlay" id="addDebtModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Tambah Hutang</h3>
+                <button class="modal-close" onclick="closeModal('addDebtModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-field">
+                    <label>Nama Hutang</label>
+                    <input type="text" placeholder="Contoh: KPR Bank">
+                </div>
+                <div class="mb-field">
+                    <label>Total Pokok</label>
+                    <input type="text" placeholder="Rp 0">
+                </div>
+                <div class="mb-field">
+                    <label>Cicilan / Bulan</label>
+                    <input type="text" placeholder="Rp 0">
+                </div>
+                <div class="mb-field">
+                    <label>Jatuh Tempo</label>
+                    <input type="date">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary-full">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Wallet Modal -->
+    <div class="modal-overlay" id="addWalletModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Tambah Dompet</h3>
+                <button class="modal-close" onclick="closeModal('addWalletModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-field">
+                    <label>Nama Dompet</label>
+                    <input type="text" placeholder="Contoh: Bank BCA">
+                </div>
+                <div class="mb-field">
+                    <label>Tipe</label>
+                    <select>
+                        <option>Bank</option>
+                        <option>E-Wallet</option>
+                        <option>Cash</option>
+                    </select>
+                </div>
+                <div class="mb-field">
+                    <label>Saldo Awal</label>
+                    <input type="text" placeholder="Rp 0">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary-full">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
