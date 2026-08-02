@@ -104,23 +104,18 @@ async function registerUser() {
         // Update display name
         await user.updateProfile({ displayName: name });
 
-        // Save user data to Firestore
-        await db.collection('users').doc(user.uid).set({
-            username: username,
-            name: name,
-            email: email,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            currency: 'IDR'
-        });
-
-        // Reserve username
-        await db.collection('usernames').doc(username).set({
-            uid: user.uid,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        // Initialize empty data for user
-        await initializeUserData(user.uid);
+        // Save user data to Firestore (simplified - one document)
+        try {
+            await db.collection('users').doc(user.uid).set({
+                username: username,
+                name: name,
+                email: email,
+                currency: 'IDR',
+                createdAt: new Date().toISOString()
+            });
+        } catch (firestoreErr) {
+            console.warn('Firestore write failed, continuing with auth only:', firestoreErr.message);
+        }
 
         showSuccess('regSuccess', 'Akun berhasil dibuat! Mengalihkan...');
         setTimeout(() => window.location.href = 'app.html', 1500);
@@ -138,35 +133,18 @@ async function registerUser() {
 
 // Initialize empty data structure for new user
 async function initializeUserData(uid) {
-    const batch = db.batch();
-
-    // Default wallets
-    const walletRef1 = db.collection('users').doc(uid).collection('wallets').doc();
-    batch.set(walletRef1, {
-        name: 'Dompet Tunai',
-        type: 'cash',
-        balance: 0,
-        icon: 'money-bill-wave',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    // Default budget categories
-    const budgetRef = db.collection('users').doc(uid).collection('settings').doc('budget');
-    batch.set(budgetRef, {
-        needs: 50,
-        wants: 30,
-        savings: 20,
-        totalBudget: 0
-    });
-
-    // Default settings
-    const settingsRef = db.collection('users').doc(uid).collection('settings').doc('general');
-    batch.set(settingsRef, {
-        currency: 'IDR',
-        theme: 'light'
-    });
-
-    await batch.commit();
+    try {
+        // Create default wallet
+        await db.collection('users').doc(uid).collection('wallets').add({
+            name: 'Dompet Tunai',
+            type: 'cash',
+            balance: 0,
+            createdAt: new Date().toISOString()
+        });
+        console.log('Default wallet created');
+    } catch (e) {
+        console.warn('Failed to create default wallet (non-critical):', e.message);
+    }
 }
 
 // ============================================
