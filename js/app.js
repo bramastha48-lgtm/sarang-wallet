@@ -800,53 +800,152 @@ async function handleAddSubscription() {
 }
 
 // ============================================
-// SCAN STRUK AI
+// SCAN STRUK AI - Real OCR with Tesseract.js
 // ============================================
-const SAMPLE_RECEIPTS = [
-    { store: 'TOKO SEJAHTERA', items: [{ name: 'Pop Mie Ayam 75g', qty: 1, price: 4900 }, { name: 'Teh Botol Sosro 350ml', qty: 2, price: 5000 }, { name: 'Chitato Sapi Panggang 68g', qty: 1, price: 12500 }, { name: 'Aqua 600ml', qty: 3, price: 3500 }] },
-    { store: 'INDOMARET', items: [{ name: 'Indomie Goreng', qty: 5, price: 3500 }, { name: 'Beras Premium 5kg', qty: 1, price: 62000 }, { name: 'Minyak Goreng 1L', qty: 1, price: 14500 }] },
-    { store: 'ALFAMART', items: [{ name: 'Kopi Good Day 10s', qty: 1, price: 18500 }, { name: 'Susu UHT Coklat 1L', qty: 2, price: 12000 }, { name: 'Roti Tawar', qty: 1, price: 15000 }] }
-];
 
 function initScanUpload() {
     const fileInput = document.getElementById('scanFileInput');
     if (fileInput) fileInput.addEventListener('change', handleScanFile);
 }
 
-function handleScanFile(e) {
+async function handleScanFile(e) {
     const file = e.target.files[0];
     if (!file) return;
+
+    const preview = document.getElementById('scanPreview');
+    const previewImg = document.getElementById('scanPreviewImg');
+    const processing = document.getElementById('scanProcessing');
+    const processingText = document.getElementById('scanProcessingText');
+    const results = document.getElementById('scanResults');
+    const uploadArea = document.getElementById('scanUploadArea');
+
+    // Show preview
     const reader = new FileReader();
-    reader.onload = async (ev) => {
-        const preview = document.getElementById('scanPreview');
-        const previewImg = document.getElementById('scanPreviewImg');
-        const processing = document.getElementById('scanProcessing');
-        const results = document.getElementById('scanResults');
-        const uploadArea = document.getElementById('scanUploadArea');
-
+    reader.onload = (ev) => {
         previewImg.src = ev.target.result;
-        preview.style.display = 'block';
-        uploadArea.style.display = 'none';
-        processing.style.display = 'block';
-        results.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
 
-        await new Promise(r => setTimeout(r, 2000));
+    preview.style.display = 'block';
+    uploadArea.style.display = 'none';
+    processing.style.display = 'block';
+    results.style.display = 'none';
 
-        const receipt = SAMPLE_RECEIPTS[Math.floor(Math.random() * SAMPLE_RECEIPTS.length)];
-        const total = receipt.items.reduce((s, i) => s + (i.qty * i.price), 0);
+    try {
+        // Real OCR with Tesseract.js
+        if (processingText) processingText.textContent = 'Memuat OCR engine...';
 
-        document.getElementById('scanTotal').value = formatRupiah(total);
+        const worker = await Tesseract.createWorker('ind+eng', 1, {
+            logger: (m) => {
+                if (m.status === 'recognizing text') {
+                    const pct = Math.round(m.progress * 100);
+                    if (processingText) processingText.textContent = `Membaca struk... ${pct}%`;
+                }
+            }
+        });
+
+        const { data: { text } } = await worker.recognize(file);
+        await worker.terminate();
+
+        console.log('OCR Result:', text);
+
+        // Parse the OCR text
+        const parsed = parseReceiptText(text);
+
+        // Fill results
+        document.getElementById('scanTotal').value = formatRupiah(parsed.total);
         document.getElementById('scanDate').value = new Date().toISOString().split('T')[0];
-        document.getElementById('scanItems').innerHTML = receipt.items.map(i => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9"><span>${i.name} (x${i.qty})</span><span style="font-weight:600">${formatRupiah(i.qty * i.price)}</span></div>`).join('') + `<div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:700;border-top:2px solid var(--border)"><span>TOTAL</span><span>${formatRupiah(total)}</span></div>`;
+        document.getElementById('scanItems').innerHTML = parsed.items.map(i =>
+            `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9">
+                <span>${escapeHtml(i.name)}</span>
+                <span style="font-weight:600">${formatRupiah(i.price)}</span>
+            </div>`
+        ).join('') + (parsed.total > 0 ?
+            `<div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:700;border-top:2px solid var(--border)">
+                <span>TOTAL</span>
+                <span>${formatRupiah(parsed.total)}</span>
+            </div>` : '');
 
+        // Populate wallet select
         const wallets = await getWallets();
         const walletSelect = document.getElementById('scanWallet');
-        walletSelect.innerHTML = '<option value="">Pilih Dompet</option>' + wallets.map(w => `<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
+        walletSelect.innerHTML = '<option value="">Pilih Dompet</option>' +
+            wallets.map(w => `<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
 
         processing.style.display = 'none';
         results.style.display = 'block';
-    };
-    reader.readAsDataURL(file);
+
+    } catch (err) {
+        console.error('OCR Error:', err);
+        processing.style.display = 'none';
+        uploadArea.style.display = 'block';
+        preview.style.display = 'none';
+        alert('Gagal membaca struk: ' + err.message);
+    }
+}
+
+// Parse receipt text from OCR
+function parseReceiptText(text) {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    const items = [];
+    let total = 0;
+
+    // Common patterns for Indonesian receipts
+    const pricePattern = /(?:rp\.?|idr)?\s*(\d[\d.,]*)/gi;
+    const totalPattern = /(?:total|jumlah|grand\s*total|tagihan|bayar)[:\s]*(?:rp\.?|idr)?\s*(\d[\d.,]*)/i;
+    const itemPattern = /^(.+?)\s+(?:rp\.?|idr)?\s*(\d[\d.,]+)(?:\s*(?:x|@)\s*(\d+))?/i;
+
+    // Try to find total first
+    for (const line of lines) {
+        const totalMatch = line.match(totalPattern);
+        if (totalMatch) {
+            total = parseNumber(totalMatch[1]);
+        }
+    }
+
+    // Parse individual items
+    for (const line of lines) {
+        // Skip common non-item lines
+        if (/^(total|subtotal|pajak|tax|cash|kembali|change|tunai|kartu|debit|credit|terima\s*kasih|thank|date|tanggal|waktu|time|kasir|no\.?|invoice|struk|nota)/i.test(line)) continue;
+        if (line.length < 3) continue;
+
+        // Try to extract item with price
+        const match = line.match(itemPattern);
+        if (match) {
+            const name = match[1].trim();
+            const price = parseNumber(match[2]);
+            if (price > 0 && name.length > 1) {
+                items.push({ name, price });
+            }
+        } else {
+            // Try to find any price in the line
+            const priceMatches = [...line.matchAll(pricePattern)];
+            if (priceMatches.length > 0) {
+                const price = parseNumber(priceMatches[priceMatches.length - 1][1]);
+                // Extract name (everything before the price)
+                const priceIdx = line.lastIndexOf(priceMatches[priceMatches.length - 1][0]);
+                const name = line.substring(0, priceIdx).trim();
+                if (price > 0 && name.length > 1 && !/^(total|subtotal|pajak|tax|cash|kembali)/i.test(name)) {
+                    items.push({ name, price });
+                }
+            }
+        }
+    }
+
+    // If no total found, sum items
+    if (total === 0 && items.length > 0) {
+        total = items.reduce((s, i) => s + i.price, 0);
+    }
+
+    return { items, total, rawText: text };
+}
+
+// Parse number from string (handles Indonesian format: 1.000.000 or 1,000,000)
+function parseNumber(str) {
+    if (!str) return 0;
+    // Remove dots as thousand separators, then remove commas
+    const cleaned = str.replace(/\./g, '').replace(/,/g, '');
+    return parseInt(cleaned) || 0;
 }
 
 async function saveScanResult() {
