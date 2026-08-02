@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="80" fill="#1a1a2e"/>
+  <text x="256" y="200" text-anchor="middle" font-family="Arial" font-weight="900" font-size="80" fill="#ff6b35">WLLT</text>
+  <text x="256" y="280" text-anchor="middle" font-family="Arial" font-weight="900" font-size="80" fill="#ffffff">-e</text>
+  <rect x="176" y="320" width="160" height="80" rx="16" fill="#ff6b35" opacity="0.8"/>
+  <circle cx="320" cy="360" r="16" fill="#ffffff"/>
+</svg>

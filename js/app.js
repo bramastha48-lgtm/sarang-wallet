@@ -85,6 +85,9 @@ function initApp() {
         });
     });
 
+    // Initialize scan upload
+    initScanUpload();
+
     // Load home page data
     loadPageData('home');
 }
@@ -898,6 +901,132 @@ async function handleAddSubscription() {
     await loadSettingsPage();
     document.getElementById('subName').value = '';
     document.getElementById('subAmount').value = '';
+}
+
+// ============================================
+// SCAN STRUK AI
+// ============================================
+
+// Sample receipt items for simulation
+const SAMPLE_RECEIPTS = [
+    { store: 'TOKO SEJAHTERA', items: [
+        { name: 'Pop Mie Ayam 75g', qty: 1, price: 4900 },
+        { name: 'Pop Mie Pedas Dower 75g', qty: 1, price: 5400 },
+        { name: 'Teh Botol Sosro 350ml', qty: 2, price: 5000 },
+        { name: 'Chitato Sapi Panggang 68g', qty: 1, price: 12500 },
+        { name: 'Aqua 600ml', qty: 3, price: 3500 }
+    ]},
+    { store: 'INDOMARET', items: [
+        { name: 'Indomie Goreng', qty: 5, price: 3500 },
+        { name: 'Beras Premium 5kg', qty: 1, price: 62000 },
+        { name: 'Minyak Goreng 1L', qty: 1, price: 14500 },
+        { name: 'Gula Pasir 1kg', qty: 1, price: 13000 }
+    ]},
+    { store: 'ALFAMART', items: [
+        { name: 'Kopi Good Day 10s', qty: 1, price: 18500 },
+        { name: 'Susu UHT Coklat 1L', qty: 2, price: 12000 },
+        { name: 'Roti Tawar', qty: 1, price: 15000 },
+        { name: 'Telur 1kg', qty: 1, price: 28000 }
+    ]}
+];
+
+function initScanUpload() {
+    const fileInput = document.getElementById('scanFileInput');
+    if (fileInput) {
+        fileInput.addEventListener('change', handleScanFile);
+    }
+}
+
+function handleScanFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+        // Show preview
+        const preview = document.getElementById('scanPreview');
+        const previewImg = document.getElementById('scanPreviewImg');
+        const processing = document.getElementById('scanProcessing');
+        const results = document.getElementById('scanResults');
+        const uploadArea = document.getElementById('scanUploadArea');
+
+        previewImg.src = ev.target.result;
+        preview.style.display = 'block';
+        uploadArea.style.display = 'none';
+        processing.style.display = 'block';
+        results.style.display = 'none';
+
+        // Simulate AI processing
+        await new Promise(r => setTimeout(r, 2000));
+
+        // Get random receipt data
+        const receipt = SAMPLE_RECEIPTS[Math.floor(Math.random() * SAMPLE_RECEIPTS.length)];
+        const total = receipt.items.reduce((s, i) => s + (i.qty * i.price), 0);
+
+        // Fill results
+        document.getElementById('scanTotal').value = formatRupiah(total);
+        document.getElementById('scanDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('scanItems').innerHTML = receipt.items.map(i => 
+            `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9">
+                <span>${i.name} (x${i.qty})</span>
+                <span style="font-weight:600">${formatRupiah(i.qty * i.price)}</span>
+            </div>`
+        ).join('') + `<div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:700;border-top:2px solid var(--border)">
+            <span>TOTAL</span>
+            <span>${formatRupiah(total)}</span>
+        </div>`;
+
+        // Populate wallet select
+        const wallets = await getWallets();
+        const walletSelect = document.getElementById('scanWallet');
+        walletSelect.innerHTML = '<option value="">Pilih Dompet</option>' + 
+            wallets.map(w => `<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
+
+        processing.style.display = 'none';
+        results.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+
+async function saveScanResult() {
+    const total = parseRupiah(document.getElementById('scanTotal')?.value || '0');
+    const date = document.getElementById('scanDate')?.value;
+    const walletId = document.getElementById('scanWallet')?.value;
+    const category = document.getElementById('scanCategory')?.value || 'Food & Dining';
+
+    if (!total) return alert('Total tidak valid');
+    if (!walletId) return alert('Pilih dompet');
+
+    let walletName = '';
+    const wallets = await getWallets();
+    const w = wallets.find(w => w.id === walletId);
+    walletName = w ? w.name : '';
+
+    await addTransaction({
+        type: 'expense',
+        amount: total,
+        date: date,
+        walletId: walletId,
+        walletName: walletName,
+        category: category,
+        description: 'Scan Struk AI'
+    });
+
+    closeModal('scanModal');
+    // Reset scan modal
+    document.getElementById('scanUploadArea').style.display = 'block';
+    document.getElementById('scanPreview').style.display = 'none';
+    document.getElementById('scanResults').style.display = 'none';
+    document.getElementById('scanFileInput').value = '';
+
+    // Reload current page
+    const activePage = document.querySelector('.page.active');
+    if (activePage) {
+        const pageName = activePage.id.replace('page-', '');
+        await loadPageData(pageName);
+    }
+
+    alert('Transaksi dari struk berhasil disimpan! ✅');
 }
 
 // ============================================
