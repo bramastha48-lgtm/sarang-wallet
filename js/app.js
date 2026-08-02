@@ -121,6 +121,48 @@ async function loadHomePage() {
         }
     }
 
+    // Expense Progress
+    const expenseProgress = document.getElementById('homeExpenseProgress');
+    if (expenseProgress) {
+        const budgetData = localStorage.getItem('sw_budget_' + (currentUser?.uid || 'default'));
+        const budgetSettings = budgetData ? JSON.parse(budgetData) : {};
+        const totalBudget = budgetSettings.totalBudget || 0;
+
+        const needsCategories = ['Housing', 'Food & Dining', 'Transport', 'Health'];
+        const wantsCategories = ['Shopping', 'Entertainment'];
+        const savingsCategories = ['Investment'];
+
+        const needsSpent = thisMonth.filter(t => t.type === 'expense' && needsCategories.includes(t.category)).reduce((s, t) => s + (t.amount || 0), 0);
+        const wantsSpent = thisMonth.filter(t => t.type === 'expense' && wantsCategories.includes(t.category)).reduce((s, t) => s + (t.amount || 0), 0);
+        const savingsSpent = thisMonth.filter(t => t.type === 'expense' && savingsCategories.includes(t.category)).reduce((s, t) => s + (t.amount || 0), 0);
+
+        const needsLimit = Math.round(totalBudget * 0.5);
+        const wantsLimit = Math.round(totalBudget * 0.3);
+        const savingsLimit = Math.round(totalBudget * 0.2);
+
+        if (totalBudget > 0) {
+            expenseProgress.innerHTML = `
+                <div class="progress-item">
+                    <div class="pi-header"><span class="pi-name">Kebutuhan</span><span class="pi-pct">${needsLimit > 0 ? Math.round(needsSpent/needsLimit*100) : 0}%</span></div>
+                    <div class="pi-bar"><div class="pi-fill green" style="width:${needsLimit > 0 ? Math.min(Math.round(needsSpent/needsLimit*100), 100) : 0}%"></div></div>
+                    <span class="pi-status ${needsSpent <= needsLimit ? 'on-track' : 'over'}">${formatRupiah(needsSpent)} / ${formatRupiah(needsLimit)}</span>
+                </div>
+                <div class="progress-item">
+                    <div class="pi-header"><span class="pi-name">Keinginan</span><span class="pi-pct">${wantsLimit > 0 ? Math.round(wantsSpent/wantsLimit*100) : 0}%</span></div>
+                    <div class="pi-bar"><div class="pi-fill orange" style="width:${wantsLimit > 0 ? Math.min(Math.round(wantsSpent/wantsLimit*100), 100) : 0}%"></div></div>
+                    <span class="pi-status ${wantsSpent <= wantsLimit ? 'controlled' : 'over'}">${formatRupiah(wantsSpent)} / ${formatRupiah(wantsLimit)}</span>
+                </div>
+                <div class="progress-item">
+                    <div class="pi-header"><span class="pi-name">Tabungan</span><span class="pi-pct">${savingsLimit > 0 ? Math.round(savingsSpent/savingsLimit*100) : 0}%</span></div>
+                    <div class="pi-bar"><div class="pi-fill blue" style="width:${savingsLimit > 0 ? Math.min(Math.round(savingsSpent/savingsLimit*100), 100) : 0}%"></div></div>
+                    <span class="pi-status ${savingsSpent <= savingsLimit ? 'on-track' : 'over'}">${formatRupiah(savingsSpent)} / ${formatRupiah(savingsLimit)}</span>
+                </div>
+            `;
+        } else {
+            expenseProgress.innerHTML = '<p style="color:var(--text-light);font-size:0.9rem;">Set budget di halaman Anggaran untuk melihat progres.</p>';
+        }
+    }
+
     // Due dates
     const dueList = document.getElementById('homeDueList');
     if (dueList) {
@@ -326,14 +368,41 @@ async function handleAddToGoal(id) {
     document.getElementById('fundGoalId').value = id;
     document.getElementById('fundGoalName').value = goal.name;
     document.getElementById('fundGoalAmount').value = '';
+
+    // Populate wallet select
+    const wallets = await getWallets();
+    const walletSelect = document.getElementById('fundGoalWallet');
+    if (walletSelect) {
+        walletSelect.innerHTML = '<option value="">Pilih Dompet</option>' +
+            wallets.map(w => `<option value="${w.id}">${escapeHtml(w.name)} (${formatRupiah(w.balance || 0)})</option>`).join('');
+    }
+
     openModal('addFundGoalModal');
 }
 
 async function handleAddFundGoal() {
     const id = document.getElementById('fundGoalId')?.value;
     const amount = parseRupiah(document.getElementById('fundGoalAmount')?.value || '0');
+    const walletId = document.getElementById('fundGoalWallet')?.value;
     if (!id || !amount) return alert('Masukkan nominal');
+
     await addToGoal(id, amount);
+
+    // Deduct from selected wallet
+    if (walletId) {
+        const wallets = await getWallets();
+        const wallet = wallets.find(w => w.id === walletId);
+        await addTransaction({
+            type: 'expense',
+            amount: amount,
+            date: new Date().toISOString().split('T')[0],
+            walletId: walletId,
+            walletName: wallet ? wallet.name : '',
+            category: 'Other',
+            description: 'Tambah dana ke tujuan keuangan'
+        });
+    }
+
     closeModal('addFundGoalModal');
     await loadGoalsPage();
 }
