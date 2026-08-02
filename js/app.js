@@ -1,17 +1,9 @@
 // ============================================
-// WLLT-e App JavaScript
+// WLLT-e App JavaScript - Firebase Integrated
 // ============================================
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Set current date
-    const dateEl = document.getElementById('currentDate');
-    if (dateEl) {
-        const now = new Date();
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        dateEl.textContent = now.toLocaleDateString('id-ID', options);
-    }
-
-    // Navigation
+// ---- Navigation ----
+function initApp() {
     const navItems = document.querySelectorAll('.nav-item');
     const pages = document.querySelectorAll('.page');
     const pageTitle = document.getElementById('pageTitle');
@@ -19,149 +11,840 @@ document.addEventListener('DOMContentLoaded', () => {
     const menuToggle = document.getElementById('menuToggle');
     const sidebarClose = document.getElementById('sidebarClose');
 
+    // Set greeting
+    updateGreeting();
+
+    // Set current date
+    const dateEl = document.getElementById('currentDate');
+    if (dateEl) {
+        const now = new Date();
+        dateEl.textContent = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+
+    // Set user display name in sidebar
+    const sidebarName = document.querySelector('.user-name');
+    if (sidebarName) sidebarName.textContent = getUserDisplayName();
+
     function navigateTo(pageName) {
-        // Update nav items
         navItems.forEach(item => item.classList.remove('active'));
         const activeNav = document.querySelector(`.nav-item[data-page="${pageName}"]`);
         if (activeNav) activeNav.classList.add('active');
 
-        // Update pages
         pages.forEach(page => page.classList.remove('active'));
         const activePage = document.getElementById(`page-${pageName}`);
         if (activePage) activePage.classList.add('active');
 
-        // Update title
         const titles = {
-            home: 'Beranda',
-            wallets: 'Dompet',
-            transactions: 'Transaksi',
-            budget: 'Anggaran',
-            goals: 'Tujuan Keuangan',
-            assets: 'Aset',
-            debts: 'Hutang',
-            receivables: 'Piutang',
-            investments: 'Investasi',
-            reports: 'Laporan',
-            settings: 'Pengaturan'
+            home: 'Beranda', wallets: 'Dompet', transactions: 'Transaksi',
+            budget: 'Anggaran', goals: 'Tujuan Keuangan', assets: 'Aset',
+            debts: 'Hutang', receivables: 'Piutang', investments: 'Investasi',
+            reports: 'Laporan', settings: 'Pengaturan'
         };
         if (pageTitle) pageTitle.textContent = titles[pageName] || pageName;
 
-        // Close sidebar on mobile
         sidebar.classList.remove('open');
-
-        // Initialize charts if needed
-        if (pageName === 'investments') initPortfolioChart();
-        if (pageName === 'reports') initExpenseChart();
+        loadPageData(pageName);
     }
 
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
             e.preventDefault();
-            const page = item.dataset.page;
-            navigateTo(page);
+            navigateTo(item.dataset.page);
         });
     });
 
-    // Quick action buttons
-    document.querySelectorAll('.qa-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            navigateTo(btn.dataset.page);
-        });
+    document.querySelectorAll('[data-page]').forEach(el => {
+        if (!el.classList.contains('nav-item')) {
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
+                navigateTo(el.dataset.page);
+            });
+        }
     });
 
-    // See all links
-    document.querySelectorAll('.see-all').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            navigateTo(link.dataset.page);
-        });
-    });
-
-    // Mobile menu
-    if (menuToggle) {
-        menuToggle.addEventListener('click', () => sidebar.classList.add('open'));
-    }
-    if (sidebarClose) {
-        sidebarClose.addEventListener('click', () => sidebar.classList.remove('open'));
-    }
+    if (menuToggle) menuToggle.addEventListener('click', () => sidebar.classList.add('open'));
+    if (sidebarClose) sidebarClose.addEventListener('click', () => sidebar.classList.remove('open'));
 
     // Add transaction button
     const addBtn = document.getElementById('addTransactionBtn');
-    if (addBtn) {
-        addBtn.addEventListener('click', () => openModal('addTransactionModal'));
+    if (addBtn) addBtn.addEventListener('click', () => openModal('addTransactionModal'));
+
+    // Load home page data
+    loadPageData('home');
+}
+
+// ---- Page Data Loading ----
+async function loadPageData(page) {
+    switch (page) {
+        case 'home': await loadHomePage(); break;
+        case 'wallets': await loadWalletsPage(); break;
+        case 'transactions': await loadTransactionsPage(); break;
+        case 'budget': await loadBudgetPage(); break;
+        case 'goals': await loadGoalsPage(); break;
+        case 'assets': await loadAssetsPage(); break;
+        case 'debts': await loadDebtsPage(); break;
+        case 'receivables': await loadReceivablesPage(); break;
+        case 'investments': await loadInvestmentsPage(); break;
+        case 'reports': await loadReportsPage(); break;
+        case 'settings': await loadSettingsPage(); break;
+    }
+}
+
+// ============================================
+// HOME PAGE
+// ============================================
+async function loadHomePage() {
+    const wallets = await getWallets();
+    const transactions = await getTransactions(10);
+    const goals = await getGoals();
+    const debts = await getDebts();
+
+    // Calculate totals
+    const totalBalance = wallets.reduce((sum, w) => sum + (w.balance || 0), 0);
+    const now = new Date();
+    const thisMonth = transactions.filter(t => {
+        const d = t.date ? new Date(t.date) : (t.createdAt ? t.createdAt.toDate() : null);
+        return d && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+    const totalIncome = thisMonth.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
+    const totalExpense = thisMonth.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
+
+    // Update overview
+    const overviewAmount = document.querySelector('.overview-amount');
+    if (overviewAmount) overviewAmount.textContent = formatRupiah(totalBalance);
+
+    const incomeEl = document.querySelector('.os-value.green');
+    if (incomeEl) incomeEl.textContent = formatRupiah(totalIncome);
+
+    const expenseEl = document.querySelector('.os-value.red');
+    if (expenseEl) expenseEl.textContent = formatRupiah(totalExpense);
+
+    // Update expense list
+    const expenseList = document.querySelector('.expense-list');
+    if (expenseList) {
+        const categories = {};
+        thisMonth.filter(t => t.type === 'expense').forEach(t => {
+            const cat = t.category || 'Lainnya';
+            categories[cat] = (categories[cat] || 0) + (t.amount || 0);
+        });
+        const sorted = Object.entries(categories).sort((a, b) => b[1] - a[1]);
+        const total = sorted.reduce((s, [, v]) => s + v, 0);
+
+        if (sorted.length === 0) {
+            expenseList.innerHTML = '<div class="empty-state">Belum ada pengeluaran bulan ini</div>';
+        } else {
+            expenseList.innerHTML = sorted.slice(0, 5).map(([cat, amount]) => {
+                const pct = total > 0 ? Math.round((amount / total) * 100) : 0;
+                const icons = { 'Housing': 'home', 'Food & Dining': 'utensils', 'Shopping': 'shopping-bag', 'Transport': 'car', 'Entertainment': 'film' };
+                const icon = icons[cat] || 'tag';
+                return `<div class="expense-item">
+                    <div class="ei-icon"><i class="fas fa-${icon}"></i></div>
+                    <div class="ei-info"><span class="ei-name">${escapeHtml(cat)}</span>
+                    <div class="ei-bar"><div class="ei-fill" style="width:${pct}%"></div></div></div>
+                    <span class="ei-amount">${formatRupiah(amount)}</span>
+                    <span class="ei-pct">${pct}%</span>
+                </div>`;
+            }).join('');
+        }
     }
 
-    // Modal tabs
-    document.querySelectorAll('.modal-tabs').forEach(tabGroup => {
-        const tabs = tabGroup.querySelectorAll('.mt-tab');
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-            });
-        });
-    });
+    // Update due dates from debts
+    const dueList = document.querySelector('.due-list');
+    if (dueList) {
+        const activeDebts = debts.filter(d => d.status !== 'lunas' && d.remaining > 0);
+        if (activeDebts.length === 0) {
+            dueList.innerHTML = '<div class="empty-state">Tidak ada jatuh tempo</div>';
+        } else {
+            dueList.innerHTML = activeDebts.slice(0, 3).map(d => `
+                <div class="due-item">
+                    <div class="due-info">
+                        <span class="due-name">${escapeHtml(d.name)}</span>
+                        <span class="due-date">${d.dueDate || '-'}</span>
+                    </div>
+                    <span class="due-amount">${formatRupiah(d.remaining)}</span>
+                </div>
+            `).join('');
+        }
+    }
+}
 
-    // Quick amount buttons
-    document.querySelectorAll('.mb-quick-amounts button').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const input = document.querySelector('.mb-amount-input');
-            if (input) {
-                const current = parseInt(input.value.replace(/\D/g, '')) || 0;
-                const add = parseInt(btn.textContent.replace(/\D/g, '')) || 0;
-                const newValue = current + add;
-                input.value = formatRupiah(newValue);
-            }
-        });
-    });
+// ============================================
+// WALLETS PAGE
+// ============================================
+async function loadWalletsPage() {
+    const wallets = await getWallets();
+    const totalBalance = wallets.reduce((sum, w) => sum + (w.balance || 0), 0);
 
-    // Tags
-    document.querySelectorAll('.mb-tags .tag').forEach(tag => {
-        tag.addEventListener('click', () => {
-            const parent = tag.parentElement;
-            parent.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
-            tag.classList.add('active');
-        });
-    });
+    const wbcAmount = document.getElementById('walletsTotalBalance') || document.querySelector('.wbc-amount');
+    if (wbcAmount) wbcAmount.textContent = formatRupiah(totalBalance);
 
-    // Filter tabs
-    document.querySelectorAll('.filter-tabs').forEach(tabGroup => {
-        const tabs = tabGroup.querySelectorAll('.ft-tab');
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-            });
-        });
-    });
+    const wbcSub = document.getElementById('walletsCount') || document.querySelector('.wbc-sub');
+    if (wbcSub) wbcSub.textContent = `${wallets.length} dompet aktif`;
 
-    // Settings tabs
-    document.querySelectorAll('.settings-tabs').forEach(tabGroup => {
-        const tabs = tabGroup.querySelectorAll('.st-tab');
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-            });
-        });
-    });
-
-    // Notification button
-    const notifBtn = document.getElementById('notifBtn');
-    if (notifBtn) {
-        notifBtn.addEventListener('click', () => {
-            alert('Tidak ada notifikasi baru');
-        });
+    const walletList = document.getElementById('walletList') || document.querySelector('.wallet-list');
+    if (walletList) {
+        if (wallets.length === 0) {
+            walletList.innerHTML = '<div class="empty-state">Belum ada dompet. Tambahkan dompet pertamamu!</div>';
+        } else {
+            walletList.innerHTML = wallets.map(w => {
+                const iconClass = w.type === 'bank' ? 'university' : w.type === 'ewallet' ? 'mobile-alt' : 'money-bill-wave';
+                const typeClass = w.type === 'bank' ? '' : w.type === 'ewallet' ? 'gopay' : 'cash';
+                return `<div class="wallet-item">
+                    <div class="wi-icon ${typeClass}"><i class="fas fa-${iconClass}"></i></div>
+                    <div class="wi-info"><span class="wi-name">${escapeHtml(w.name)}</span><span class="wi-detail">${w.type}</span></div>
+                    <span class="wi-amount">${formatRupiah(w.balance || 0)}</span>
+                    <div class="wi-actions">
+                        <button class="btn-icon-sm red" onclick="handleDeleteWallet('${w.id}')"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
     }
 
-    // Greeting based on time
-    updateGreeting();
-});
+    // Populate wallet selects in transfer form and transaction modal
+    populateWalletSelects(wallets);
+}
 
-// ---- Modal Functions ----
+function populateWalletSelects(wallets) {
+    const selects = document.querySelectorAll('.wallet-select');
+    selects.forEach(sel => {
+        const current = sel.value;
+        sel.innerHTML = '<option value="">Pilih Dompet</option>' +
+            wallets.map(w => `<option value="${w.id}">${escapeHtml(w.name)} (${formatRupiah(w.balance || 0)})</option>`).join('');
+        if (current) sel.value = current;
+    });
+}
+
+async function handleDeleteWallet(id) {
+    if (confirm('Hapus dompet ini?')) {
+        await deleteWallet(id);
+        await loadWalletsPage();
+    }
+}
+
+// ============================================
+// TRANSACTIONS PAGE
+// ============================================
+async function loadTransactionsPage() {
+    const transactions = await getTransactions(100);
+    const txList = document.getElementById('transactionList') || document.querySelector('.transaction-list');
+
+    if (!txList) return;
+
+    if (transactions.length === 0) {
+        txList.innerHTML = '<div class="empty-state">Belum ada transaksi. Tambahkan transaksi pertamamu!</div>';
+        return;
+    }
+
+    // Group by date
+    const grouped = {};
+    transactions.forEach(t => {
+        const d = t.date || (t.createdAt ? t.createdAt.toDate().toISOString().split('T')[0] : 'Unknown');
+        if (!grouped[d]) grouped[d] = [];
+        grouped[d].push(t);
+    });
+
+    const categoryIcons = {
+        'Salary': 'money-bill-wave', 'Freelance': 'laptop-code', 'Food & Dining': 'utensils',
+        'Housing': 'home', 'Shopping': 'shopping-bag', 'Transport': 'car',
+        'Entertainment': 'film', 'Health': 'heartbeat', 'Education': 'graduation-cap'
+    };
+
+    txList.innerHTML = Object.entries(grouped).sort((a, b) => b[0].localeCompare(a[0])).map(([date, items]) => {
+        const total = items.reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0);
+        const dateStr = new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        return `<div class="tx-group">
+            <div class="tx-date">
+                <span>${dateStr}</span>
+                <span class="tx-total ${total >= 0 ? 'green' : 'red'}">${total >= 0 ? '+' : ''}${formatRupiah(Math.abs(total))}</span>
+            </div>
+            ${items.map(t => {
+                const icon = categoryIcons[t.category] || 'tag';
+                const isIncome = t.type === 'income';
+                return `<div class="tx-item">
+                    <div class="txi-icon ${isIncome ? 'salary' : 'food'}"><i class="fas fa-${icon}"></i></div>
+                    <div class="txi-info">
+                        <span class="txi-name">${escapeHtml(t.description || t.category || 'Transaksi')}</span>
+                        <span class="txi-source">${escapeHtml(t.walletName || '-')} • ${escapeHtml(t.category || '-')}</span>
+                    </div>
+                    <span class="txi-amount ${isIncome ? 'green' : 'red'}">${isIncome ? '+' : '-'}${formatRupiah(t.amount)}</span>
+                    <button class="btn-icon-sm red" onclick="handleDeleteTransaction('${t.id}')" style="margin-left:8px"><i class="fas fa-trash"></i></button>
+                </div>`;
+            }).join('')}
+        </div>`;
+    }).join('');
+}
+
+async function handleDeleteTransaction(id) {
+    if (confirm('Hapus transaksi ini?')) {
+        await deleteTransaction(id);
+        await loadTransactionsPage();
+    }
+}
+
+// ============================================
+// GOALS PAGE
+// ============================================
+async function loadGoalsPage() {
+    const goals = await getGoals();
+    const grid = document.getElementById('goalList') || document.querySelector('.goals-grid');
+
+    if (!grid) return;
+
+    if (goals.length === 0) {
+        grid.innerHTML = '<div class="empty-state">Belum ada tujuan keuangan. Buat tujuan pertamamu!</div>';
+        return;
+    }
+
+    grid.innerHTML = goals.map(g => {
+        const pct = g.target > 0 ? Math.round((g.current / g.target) * 100) : 0;
+        const icons = { '🎯': 'bullseye', '🏠': 'home', '✈️': 'plane', '🚗': 'car', '💍': 'ring', '📱': 'mobile-alt', '🛡️': 'shield-halved' };
+        const icon = icons[g.icon] || 'bullseye';
+        return `<div class="goal-card">
+            <div class="gc-header">
+                <div class="gc-icon emergency"><i class="fas fa-${icon}"></i></div>
+                <div class="gc-info"><h4>${escapeHtml(g.name)}</h4><span class="gc-date">Target: ${g.targetDate || '-'}</span></div>
+                <span class="gc-pct">${pct}%</span>
+            </div>
+            <div class="gc-progress"><div class="gc-bar"><div class="gc-fill" style="width:${Math.min(pct, 100)}%"></div></div></div>
+            <div class="gc-details">
+                <div class="gc-detail"><span class="gc-label">Terkumpul</span><span class="gc-value">${formatRupiah(g.current)}</span></div>
+                <div class="gc-detail"><span class="gc-label">Target</span><span class="gc-value">${formatRupiah(g.target)}</span></div>
+            </div>
+            <div class="gc-actions">
+                <button class="btn-green" onclick="handleAddToGoal('${g.id}')"><i class="fas fa-plus"></i> Tambah Dana</button>
+                <button class="btn-outline-sm" onclick="handleWithdrawGoal('${g.id}')"><i class="fas fa-minus"></i> Tarik</button>
+                <button class="btn-icon-sm red" onclick="handleDeleteGoal('${g.id}')"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function handleAddToGoal(id) {
+    const amount = prompt('Masukkan jumlah yang ingin ditambahkan (Rp):');
+    if (amount && !isNaN(parseRupiah(amount))) {
+        await addToGoal(id, parseRupiah(amount));
+        await loadGoalsPage();
+    }
+}
+
+async function handleWithdrawGoal(id) {
+    const amount = prompt('Masukkan jumlah yang ingin ditarik (Rp):');
+    if (amount && !isNaN(parseRupiah(amount))) {
+        await withdrawFromGoal(id, parseRupiah(amount));
+        await loadGoalsPage();
+    }
+}
+
+async function handleDeleteGoal(id) {
+    if (confirm('Hapus tujuan ini?')) {
+        await deleteGoal(id);
+        await loadGoalsPage();
+    }
+}
+
+// ============================================
+// ASSETS PAGE
+// ============================================
+async function loadAssetsPage() {
+    const assets = await getAssets();
+    const totalValue = assets.reduce((s, a) => s + (a.value || 0), 0);
+
+    const asAmount = document.querySelector('.as-amount');
+    if (asAmount) asAmount.textContent = formatRupiah(totalValue);
+
+    const liquid = assets.filter(a => a.type === 'liquid');
+    const fixed = assets.filter(a => a.type === 'fixed');
+    const liquidTotal = liquid.reduce((s, a) => s + (a.value || 0), 0);
+    const fixedTotal = fixed.reduce((s, a) => s + (a.value || 0), 0);
+
+    // Update breakdown
+    const breakdown = document.querySelector('.asset-breakdown');
+    if (breakdown) {
+        breakdown.innerHTML = `
+            <div class="ab-item"><span class="ab-icon liquid"><i class="fas fa-coins"></i></span><span class="ab-name">Aset Likuid</span><span class="ab-amount">${formatRupiah(liquidTotal)}</span></div>
+            <div class="ab-item"><span class="ab-icon fixed"><i class="fas fa-home"></i></span><span class="ab-name">Aset Tetap</span><span class="ab-amount">${formatRupiah(fixedTotal)}</span></div>
+        `;
+    }
+
+    // Render asset lists
+    const assetList = document.getElementById('assetList') || document.querySelector('.asset-list');
+    if (assetList) {
+        if (assets.length === 0) {
+            assetList.innerHTML = '<div class="empty-state">Belum ada aset. Tambahkan aset pertamamu!</div>';
+        } else {
+            assetList.innerHTML = assets.map(a => `
+                <div class="asset-item">
+                    <div class="ai-icon ${a.type === 'liquid' ? 'gold' : 'house'}"><i class="fas fa-${a.type === 'liquid' ? 'coins' : 'home'}"></i></div>
+                    <div class="ai-info"><span class="ai-name">${escapeHtml(a.name)}</span><span class="ai-type">${a.type}</span></div>
+                    <span class="ai-amount">${formatRupiah(a.value)}</span>
+                    <button class="btn-icon-sm red" onclick="handleDeleteAsset('${a.id}')" style="margin-left:8px"><i class="fas fa-trash"></i></button>
+                </div>
+            `).join('');
+        }
+    }
+}
+
+async function handleDeleteAsset(id) {
+    if (confirm('Hapus aset ini?')) {
+        await deleteAsset(id);
+        await loadAssetsPage();
+    }
+}
+
+// ============================================
+// DEBTS PAGE
+// ============================================
+async function loadDebtsPage() {
+    const debts = await getDebts();
+    const activeDebts = debts.filter(d => d.status !== 'lunas');
+    const totalRemaining = activeDebts.reduce((s, d) => s + (d.remaining || 0), 0);
+    const totalPrincipal = debts.reduce((s, d) => s + (d.totalPrincipal || 0), 0);
+    const totalPaid = totalPrincipal - totalRemaining;
+    const monthlyTotal = activeDebts.reduce((s, d) => s + (d.monthlyPayment || 0), 0);
+
+    const dsAmount = document.querySelector('.ds-amount');
+    if (dsAmount) dsAmount.textContent = formatRupiah(totalRemaining);
+
+    const debtList = document.getElementById('debtList') || document.querySelector('.debt-list');
+    if (debtList) {
+        if (debts.length === 0) {
+            debtList.innerHTML = '<div class="empty-state">Belum ada hutang. Tambahkan data hutang!</div>';
+        } else {
+            debtList.innerHTML = debts.map(d => {
+                const paidPct = d.totalPrincipal > 0 ? Math.round(((d.totalPrincipal - d.remaining) / d.totalPrincipal) * 100) : 0;
+                return `<div class="debt-card">
+                    <div class="dc-header">
+                        <div class="dc-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                        <div class="dc-info"><h4>${escapeHtml(d.name)}</h4><span class="dc-type">${d.status === 'lunas' ? '✅ Lunas' : 'Aktif'}</span></div>
+                    </div>
+                    <div class="dc-details">
+                        <div class="dc-row"><span>Sisa Hutang</span><span class="dc-value">${formatRupiah(d.remaining)}</span></div>
+                        <div class="dc-row"><span>Cicilan / Bulan</span><span class="dc-value">${formatRupiah(d.monthlyPayment)}</span></div>
+                    </div>
+                    <div class="dc-progress"><div class="dc-bar"><div class="dc-fill ${paidPct >= 50 ? 'green' : ''}" style="width:${paidPct}%"></div></div><span>${paidPct}% lunas</span></div>
+                    <div style="display:flex;gap:8px;margin-top:12px">
+                        <button class="btn-pay" onclick="handlePayDebt('${d.id}')"><i class="fas fa-money-bill-wave"></i> Bayar</button>
+                        <button class="btn-icon-sm red" onclick="handleDeleteDebt('${d.id}')"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+    }
+}
+
+async function handlePayDebt(id) {
+    const amount = prompt('Masukkan jumlah pembayaran (Rp):');
+    if (amount && !isNaN(parseRupiah(amount))) {
+        await payDebt(id, parseRupiah(amount));
+        await loadDebtsPage();
+    }
+}
+
+async function handleDeleteDebt(id) {
+    if (confirm('Hapus data hutang ini?')) {
+        await deleteDebt(id);
+        await loadDebtsPage();
+    }
+}
+
+// ============================================
+// RECEIVABLES PAGE
+// ============================================
+async function loadReceivablesPage() {
+    const receivables = await getReceivables();
+    const active = receivables.filter(r => r.status !== 'lunas');
+    const totalRemaining = active.reduce((s, r) => s + (r.remaining || 0), 0);
+    const totalCollected = receivables.reduce((s, r) => s + (r.collected || 0), 0);
+
+    const rsAmount = document.getElementById('receivableTotalRemaining');
+    if (rsAmount) rsAmount.textContent = formatRupiah(totalRemaining);
+
+    const rsTotalLent = document.getElementById('receivableTotalLent');
+    if (rsTotalLent) rsTotalLent.textContent = formatRupiah(receivables.reduce((s, r) => s + (r.totalLent || 0), 0));
+
+    const rsCollected = document.getElementById('receivableTotalCollected');
+    if (rsCollected) rsCollected.textContent = formatRupiah(totalCollected);
+
+    const rsProgressText = document.getElementById('receivableProgressText');
+    if (rsProgressText) rsProgressText.textContent = `PROGRES PENAGIHAN: ${formatRupiah(totalCollected)} terkumpul`;
+
+    const list = document.getElementById('receivableList') || document.querySelector('.receivable-list');
+    if (list) {
+        if (receivables.length === 0) {
+            list.innerHTML = '<div class="empty-state">Belum ada piutang</div>';
+        } else {
+            list.innerHTML = receivables.map(r => {
+                const pct = r.totalLent > 0 ? Math.round((r.collected / r.totalLent) * 100) : 0;
+                return `<div class="receivable-card">
+                    <div class="rc-header"><h4>${escapeHtml(r.name)}</h4></div>
+                    <div class="rc-row"><span>Peminjam</span><span class="rc-value">${escapeHtml(r.borrower || '-')}</span></div>
+                    <div class="rc-row"><span>Sisa Piutang</span><span class="rc-value">${formatRupiah(r.remaining)}</span></div>
+                    <div class="rc-row"><span>Jatuh Tempo</span><span class="rc-value">${r.dueDate || '-'}</span></div>
+                    <div class="rc-progress"><div class="rc-bar"><div class="rc-fill" style="width:${pct}%"></div></div><span>Terkumpul: ${formatRupiah(r.collected)} / ${formatRupiah(r.totalLent)}</span></div>
+                    <div style="display:flex;gap:8px;margin-top:12px">
+                        <button class="btn-green" onclick="handleCollectReceivable('${r.id}')"><i class="fas fa-hand-holding-usd"></i> Terima</button>
+                        <button class="btn-icon-sm red" onclick="handleDeleteReceivable('${r.id}')"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+    }
+}
+
+async function handleCollectReceivable(id) {
+    const amount = prompt('Masukkan jumlah yang diterima (Rp):');
+    if (amount && !isNaN(parseRupiah(amount))) {
+        await collectReceivable(id, parseRupiah(amount));
+        await loadReceivablesPage();
+    }
+}
+
+async function handleDeleteReceivable(id) {
+    if (confirm('Hapus piutang ini?')) {
+        await deleteReceivable(id);
+        await loadReceivablesPage();
+    }
+}
+
+// ============================================
+// INVESTMENTS PAGE
+// ============================================
+let portfolioChartInstance = null;
+
+async function loadInvestmentsPage() {
+    const investments = await getInvestments();
+    const totalValue = investments.reduce((s, i) => s + (i.currentPrice || 0), 0);
+    const totalBuy = investments.reduce((s, i) => s + (i.buyPrice || 0), 0);
+    const profit = totalValue - totalBuy;
+    const profitPct = totalBuy > 0 ? ((profit / totalBuy) * 100).toFixed(2) : 0;
+
+    const isAmount = document.getElementById('investTotalValue');
+    if (isAmount) isAmount.textContent = formatRupiah(totalValue);
+
+    const isProfit = document.getElementById('investProfit');
+    if (isProfit) {
+        isProfit.className = `is-profit ${profit >= 0 ? 'green' : 'red'}`;
+        isProfit.innerHTML = `<i class="fas fa-arrow-${profit >= 0 ? 'up' : 'down'}"></i> ${profit >= 0 ? '+' : ''}${formatRupiah(profit)} (${profitPct}%)`;
+    }
+
+    const list = document.getElementById('investmentList') || document.querySelector('.investment-list');
+    if (list) {
+        if (investments.length === 0) {
+            list.innerHTML = '<div class="empty-state">Belum ada investasi</div>';
+        } else {
+            list.innerHTML = investments.map(i => {
+                const change = i.buyPrice > 0 ? (((i.currentPrice - i.buyPrice) / i.buyPrice) * 100).toFixed(1) : 0;
+                const typeIcons = { stock: 'chart-line', crypto: 'bitcoin', bond: 'file-contract' };
+                return `<div class="investment-item">
+                    <div class="ii-icon ${i.type}"><i class="fas fa-${typeIcons[i.type] || 'chart-line'}"></i></div>
+                    <div class="ii-info"><span class="ii-name">${escapeHtml(i.name)}</span><span class="ii-type">${i.type}</span></div>
+                    <div class="ii-data">
+                        <span class="ii-amount">${formatRupiah(i.currentPrice)}</span>
+                        <span class="ii-change ${change >= 0 ? 'green' : 'red'}">${change >= 0 ? '+' : ''}${change}%</span>
+                    </div>
+                    <button class="btn-icon-sm red" onclick="handleDeleteInvestment('${i.id}')" style="margin-left:8px"><i class="fas fa-trash"></i></button>
+                </div>`;
+            }).join('');
+        }
+    }
+
+    // Chart
+    const ctx = document.getElementById('portfolioChart');
+    if (ctx && investments.length > 0) {
+        if (portfolioChartInstance) portfolioChartInstance.destroy();
+        const types = {};
+        investments.forEach(i => { types[i.type] = (types[i.type] || 0) + (i.currentPrice || 0); });
+        portfolioChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(types),
+                datasets: [{ data: Object.values(types), backgroundColor: ['#00c853', '#ff9100', '#2979ff', '#7c4dff'], borderWidth: 0 }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } }, cutout: '65%' }
+        });
+    }
+}
+
+async function handleDeleteInvestment(id) {
+    if (confirm('Hapus investasi ini?')) {
+        await deleteInvestment(id);
+        await loadInvestmentsPage();
+    }
+}
+
+// ============================================
+// REPORTS PAGE
+// ============================================
+let expenseChartInstance = null;
+
+async function loadReportsPage() {
+    const wallets = await getWallets();
+    const transactions = await getTransactions(200);
+    const totalBalance = wallets.reduce((s, w) => s + (w.balance || 0), 0);
+
+    const now = new Date();
+    const thisMonth = transactions.filter(t => {
+        const d = t.date ? new Date(t.date) : (t.createdAt ? t.createdAt.toDate() : null);
+        return d && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+    const totalIncome = thisMonth.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
+    const totalExpense = thisMonth.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
+
+    // Update report cards
+    const reportCards = document.querySelectorAll('.report-card');
+    if (reportCards[0]) reportCards[0].querySelector('.rc-amount').textContent = formatRupiah(totalBalance);
+    if (reportCards[1]) reportCards[1].querySelector('.rc-amount').textContent = formatRupiah(totalIncome);
+    if (reportCards[2]) reportCards[2].querySelector('.rc-amount').textContent = formatRupiah(totalExpense);
+
+    // Chart
+    const ctx = document.getElementById('expenseChart');
+    if (ctx) {
+        if (expenseChartInstance) expenseChartInstance.destroy();
+        // Group by month
+        const months = {};
+        transactions.forEach(t => {
+            const d = t.date ? new Date(t.date) : (t.createdAt ? t.createdAt.toDate() : null);
+            if (!d) return;
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            if (!months[key]) months[key] = { income: 0, expense: 0 };
+            if (t.type === 'income') months[key].income += t.amount || 0;
+            else months[key].expense += t.amount || 0;
+        });
+        const sorted = Object.entries(months).sort().slice(-6);
+        expenseChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: sorted.map(([k]) => k),
+                datasets: [
+                    { label: 'Pemasukan', data: sorted.map(([, v]) => v.income), backgroundColor: '#00c853', borderRadius: 6 },
+                    { label: 'Pengeluaran', data: sorted.map(([, v]) => v.expense), backgroundColor: '#ff1744', borderRadius: 6 }
+                ]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, ticks: { callback: v => formatRupiah(v) } }, x: { grid: { display: false } } } }
+        });
+    }
+}
+
+// ============================================
+// BUDGET PAGE
+// ============================================
+async function loadBudgetPage() {
+    const wallets = await getWallets();
+    const transactions = await getTransactions(200);
+    const totalBalance = wallets.reduce((s, w) => s + (w.balance || 0), 0);
+
+    const boAmount = document.querySelector('.bo-amount');
+    if (boAmount) boAmount.textContent = formatRupiah(totalBalance);
+
+    // Show wallets
+    const wmList = document.querySelector('.wallet-mini-list');
+    if (wmList) {
+        if (wallets.length === 0) {
+            wmList.innerHTML = '<div class="empty-state">Belum ada dompet</div>';
+        } else {
+            wmList.innerHTML = wallets.map(w => `
+                <div class="wm-item">
+                    <div class="wm-icon"><i class="fas fa-${w.type === 'bank' ? 'university' : w.type === 'ewallet' ? 'mobile-alt' : 'money-bill-wave'}"></i></div>
+                    <div class="wm-info"><span class="wm-name">${escapeHtml(w.name)}</span><span class="wm-type">${w.type}</span></div>
+                    <span class="wm-amount">${formatRupiah(w.balance || 0)}</span>
+                </div>
+            `).join('');
+        }
+    }
+}
+
+// ============================================
+// SETTINGS PAGE
+// ============================================
+async function loadSettingsPage() {
+    const subs = await getSubscriptions();
+    const subTotal = subs.reduce((s, sub) => s + (sub.amount || 0), 0);
+
+    const subList = document.getElementById('subscriptionList') || document.querySelector('.subscription-list');
+    if (subList) {
+        if (subs.length === 0) {
+            subList.innerHTML = '<div class="empty-state">Belum ada langganan</div>';
+        } else {
+            subList.innerHTML = subs.map(s => `
+                <div class="sub-item">
+                    <div class="sub-icon"><i class="fas fa-sync"></i></div>
+                    <div class="sub-info"><span class="sub-name">${escapeHtml(s.name)}</span><span class="sub-detail">${escapeHtml(s.category || '-')} • ${escapeHtml(s.frequency || 'Bulanan')}</span></div>
+                    <span class="sub-amount red">-${formatRupiah(s.amount)}</span>
+                    <div class="sub-actions"><button class="btn-icon-sm red" onclick="handleDeleteSub('${s.id}')"><i class="fas fa-trash"></i></button></div>
+                </div>
+            `).join('');
+        }
+    }
+
+    // Set profile fields
+    const nameInput = document.querySelector('#settingsName');
+    if (nameInput) nameInput.value = getUserDisplayName();
+}
+
+async function handleDeleteSub(id) {
+    if (confirm('Hapus langganan ini?')) {
+        await deleteSubscription(id);
+        await loadSettingsPage();
+    }
+}
+
+// ============================================
+// MODAL HANDLERS (Form Submissions)
+// ============================================
+
+// Add Wallet
+async function handleAddWallet() {
+    const name = document.getElementById('walletName')?.value?.trim();
+    const type = document.getElementById('walletType')?.value;
+    const balance = parseRupiah(document.getElementById('walletBalance')?.value || '0');
+
+    if (!name) return alert('Nama dompet wajib diisi');
+
+    await addWallet({ name, type, balance });
+    closeModal('addWalletModal');
+    await loadWalletsPage();
+    document.getElementById('walletName').value = '';
+    document.getElementById('walletBalance').value = '';
+}
+
+// Add Transaction
+async function handleAddTransaction() {
+    const type = document.querySelector('.mt-tab.active')?.dataset?.type || 'expense';
+    const amount = parseRupiah(document.getElementById('txAmount')?.value || '0');
+    const date = document.getElementById('txDate')?.value;
+    const walletId = document.getElementById('txWallet')?.value;
+    const category = document.getElementById('txCategory')?.value;
+    const description = document.getElementById('txDescription')?.value?.trim();
+
+    if (!amount) return alert('Nominal wajib diisi');
+
+    // Get wallet name
+    let walletName = '';
+    if (walletId) {
+        const wallets = await getWallets();
+        const w = wallets.find(w => w.id === walletId);
+        walletName = w ? w.name : '';
+    }
+
+    await addTransaction({ type, amount, date, walletId, walletName, category, description });
+    closeModal('addTransactionModal');
+    await loadTransactionsPage();
+    document.getElementById('txAmount').value = '';
+    document.getElementById('txDescription').value = '';
+}
+
+// Add Goal
+async function handleAddGoal() {
+    const name = document.getElementById('goalName')?.value?.trim();
+    const target = parseRupiah(document.getElementById('goalTarget')?.value || '0');
+    const targetDate = document.getElementById('goalDate')?.value;
+    const icon = document.querySelector('#addGoalModal .tag.active')?.textContent || '🎯';
+
+    if (!name) return alert('Nama tujuan wajib diisi');
+    if (!target) return alert('Target nominal wajib diisi');
+
+    await addGoal({ name, target, targetDate, icon, current: 0 });
+    closeModal('addGoalModal');
+    await loadGoalsPage();
+    document.getElementById('goalName').value = '';
+    document.getElementById('goalTarget').value = '';
+}
+
+// Add Asset
+async function handleAddAsset() {
+    const name = document.getElementById('assetName')?.value?.trim();
+    const type = document.getElementById('assetType')?.value;
+    const value = parseRupiah(document.getElementById('assetValue')?.value || '0');
+
+    if (!name) return alert('Nama aset wajib diisi');
+
+    await addAsset({ name, type, value });
+    closeModal('addAssetModal');
+    await loadAssetsPage();
+    document.getElementById('assetName').value = '';
+    document.getElementById('assetValue').value = '';
+}
+
+// Add Debt
+async function handleAddDebt() {
+    const name = document.getElementById('debtName')?.value?.trim();
+    const totalPrincipal = parseRupiah(document.getElementById('debtPrincipal')?.value || '0');
+    const monthlyPayment = parseRupiah(document.getElementById('debtMonthly')?.value || '0');
+    const dueDate = document.getElementById('debtDueDate')?.value;
+
+    if (!name) return alert('Nama hutang wajib diisi');
+
+    await addDebt({ name, totalPrincipal, remaining: totalPrincipal, monthlyPayment, dueDate, status: 'aktif' });
+    closeModal('addDebtModal');
+    await loadDebtsPage();
+    document.getElementById('debtName').value = '';
+    document.getElementById('debtPrincipal').value = '';
+    document.getElementById('debtMonthly').value = '';
+}
+
+// Add Receivable
+async function handleAddReceivable() {
+    const name = document.getElementById('receivableName')?.value?.trim();
+    const borrower = document.getElementById('receivableBorrower')?.value?.trim();
+    const totalLent = parseRupiah(document.getElementById('receivableTotalLent')?.value || '0');
+    const dueDate = document.getElementById('receivableDueDate')?.value;
+
+    if (!name) return alert('Nama piutang wajib diisi');
+
+    await addReceivable({ name, borrower, totalLent, remaining: totalLent, collected: 0, dueDate, status: 'aktif' });
+    closeModal('addReceivableModal');
+    await loadReceivablesPage();
+    document.getElementById('receivableName').value = '';
+    document.getElementById('receivableBorrower').value = '';
+    document.getElementById('receivableTotalLent').value = '';
+}
+
+// Add Investment
+async function handleAddInvestment() {
+    const name = document.getElementById('investName')?.value?.trim();
+    const type = document.getElementById('investType')?.value;
+    const buyPrice = parseRupiah(document.getElementById('investBuyPrice')?.value || '0');
+    const currentPrice = parseRupiah(document.getElementById('investCurrentPrice')?.value || '0');
+
+    if (!name) return alert('Nama investasi wajib diisi');
+
+    await addInvestment({ name, type, buyPrice, currentPrice });
+    closeModal('addInvestmentModal');
+    await loadInvestmentsPage();
+    document.getElementById('investName').value = '';
+    document.getElementById('investBuyPrice').value = '';
+    document.getElementById('investCurrentPrice').value = '';
+}
+
+// Add Subscription
+async function handleAddSubscription() {
+    const name = document.getElementById('subName')?.value?.trim();
+    const category = document.getElementById('subCategory')?.value;
+    const amount = parseRupiah(document.getElementById('subAmount')?.value || '0');
+    const frequency = document.getElementById('subFrequency')?.value;
+    const dueDate = document.getElementById('subDueDate')?.value;
+
+    if (!name) return alert('Nama langganan wajib diisi');
+
+    await addSubscription({ name, category, amount, frequency, dueDate });
+    closeModal('addSubscriptionModal');
+    await loadSettingsPage();
+    document.getElementById('subName').value = '';
+    document.getElementById('subAmount').value = '';
+}
+
+// ============================================
+// MODAL FUNCTIONS
+// ============================================
 function openModal(id) {
     const modal = document.getElementById(id);
-    if (modal) modal.classList.add('open');
+    if (modal) {
+        modal.classList.add('open');
+        // Set default date
+        const dateInput = modal.querySelector('input[type="date"]');
+        if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
+    }
 }
 
 function closeModal(id) {
@@ -170,18 +853,18 @@ function closeModal(id) {
 }
 
 // Close modal on overlay click
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
-            overlay.classList.remove('open');
-        }
-    });
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal-overlay')) {
+        e.target.classList.remove('open');
+    }
 });
 
-// ---- Chat Functions ----
+// ============================================
+// AI CHAT
+// ============================================
 function toggleChat() {
     const panel = document.getElementById('aiChatPanel');
-    panel.classList.toggle('open');
+    if (panel) panel.classList.toggle('open');
 }
 
 function sendChat() {
@@ -190,214 +873,46 @@ function sendChat() {
     const text = input.value.trim();
     if (!text) return;
 
-    // Add user message
     const userMsg = document.createElement('div');
     userMsg.className = 'msg user';
-    userMsg.innerHTML = `
-        <div class="msg-avatar"><i class="fas fa-user"></i></div>
-        <div class="msg-content">
-            <p>${escapeHtml(text)}</p>
-            <span class="msg-time">${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
-        </div>
-    `;
+    userMsg.innerHTML = `<div class="msg-avatar"><i class="fas fa-user"></i></div>
+        <div class="msg-content"><p>${escapeHtml(text)}</p><span class="msg-time">${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span></div>`;
     messages.appendChild(userMsg);
-
     input.value = '';
     messages.scrollTop = messages.scrollHeight;
 
-    // Simulate AI response
     setTimeout(() => {
-        const responses = getAIResponse(text);
         const botMsg = document.createElement('div');
         botMsg.className = 'msg bot';
-        botMsg.innerHTML = `
-            <div class="msg-avatar"><i class="fas fa-robot"></i></div>
-            <div class="msg-content">
-                <p>${responses}</p>
-                <span class="msg-time">${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
-            </div>
-        `;
+        botMsg.innerHTML = `<div class="msg-avatar"><i class="fas fa-robot"></i></div>
+            <div class="msg-content"><p>Halo ${getUserDisplayName()}! 👋 Saya WLLT-Ai. Ada yang bisa saya bantu? Coba tanya tentang budget, tabungan, atau pengeluaranmu!</p>
+            <span class="msg-time">${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span></div>`;
         messages.appendChild(botMsg);
         messages.scrollTop = messages.scrollHeight;
-    }, 1000);
+    }, 800);
 }
 
-// Enter key for chat
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && document.activeElement.id === 'chatInput') {
-        sendChat();
-    }
+    if (e.key === 'Enter' && document.activeElement?.id === 'chatInput') sendChat();
 });
 
-function getAIResponse(input) {
-    const lower = input.toLowerCase();
-
-    if (lower.includes('analisa') || lower.includes('analisis') || lower.includes('pengeluaran')) {
-        return `📊 <strong>Analisis Pengeluaran Minggu Ini:</strong><br><br>
-Total pengeluaran: <strong>Rp 4.040.000</strong><br><br>
-• Housing: Rp 3.500.000 (87%) - masih dalam batas normal<br>
-• Shopping: Rp 375.000 (9%) - cukup terkendali<br>
-• Food & Dining: Rp 165.000 (4%) - sangat baik!<br><br>
-💡 Tips: Untuk minggu depan, coba kurangi pengeluaran shopping sedikit ya!`;
-    }
-
-    if (lower.includes('budget') || lower.includes('anggaran')) {
-        return `💰 <strong>Status Budget Bulan Ini:</strong><br><br>
-Sisa budget: <strong>Rp 43.060.000</strong><br>
-Total budget: Rp 47.100.000<br>
-Terpakai: Rp 4.040.000 (8.6%)<br><br>
-✅ Kamu masih on track! Pertahankan!`;
-    }
-
-    if (lower.includes('tabung') || lower.includes('saving') || lower.includes('nabung')) {
-        return `🏦 <strong>Progress Tabungan:</strong><br><br>
-• Dana Darurat: 42% (Rp 25.000.000 / Rp 60.000.000)<br>
-• Liburan Jepang: 34% (Rp 8.500.000 / Rp 25.000.000)<br><br>
-💡 Kamu perlu nabung Rp 1.178.572/bulan untuk capai target liburan!`;
-    }
-
-    if (lower.includes('hutang') || lower.includes('debt') || lower.includes('cicilan')) {
-        return `📋 <strong>Status Hutang:</strong><br><br>
-• KPR Bank Mandiri: Rp 280.000.000 sisa (20% lunas)<br>
-• Cicilan Motor: Rp 8.000.000 sisa (67% lunas)<br><br>
-Total cicilan/bulan: Rp 3.800.000<br>
-💡 Bagus! Motor Vario hampir lunas!`;
-    }
-
-    if (lower.includes('investasi') || lower.includes('portfolio')) {
-        return `📈 <strong>Portofolio Investasi:</strong><br><br>
-Total: <strong>Rp 32.078.376</strong><br>
-Keuntungan: +Rp 3.558.876 (+12.48%)<br><br>
-• BBCA: +25% 🚀<br>
-• BBRI: +16%<br>
-• BTC: +14%<br>
-• Obligasi: +4%<br><br>
-💡 Performa investasimu bagus bulan ini!`;
-    }
-
-    return `Halo! 👋 Saya WLLT-Ai, asisten keuanganmu.<br><br>
-Saya bisa membantu:<br>
-• 📊 Analisis pengeluaran<br>
-• 💰 Cek budget<br>
-• 🏦 Status tabungan<br>
-• 📋 Info hutang<br>
-• 📈 Portofolio investasi<br><br>
-Coba tanyakan salah satu di atas!`;
-}
-
-// ---- Charts ----
-let portfolioChartInstance = null;
-let expenseChartInstance = null;
-
-function initPortfolioChart() {
-    const ctx = document.getElementById('portfolioChart');
-    if (!ctx) return;
-
-    if (portfolioChartInstance) portfolioChartInstance.destroy();
-
-    portfolioChartInstance = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Saham', 'Crypto', 'Obligasi'],
-            datasets: [{
-                data: [18300000, 3428376, 10350000],
-                backgroundColor: ['#00c853', '#ff9100', '#2979ff'],
-                borderWidth: 0,
-                hoverOffset: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 20,
-                        usePointStyle: true,
-                        font: { family: 'Inter', size: 12 }
-                    }
-                }
-            },
-            cutout: '65%'
-        }
-    });
-}
-
-function initExpenseChart() {
-    const ctx = document.getElementById('expenseChart');
-    if (!ctx) return;
-
-    if (expenseChartInstance) expenseChartInstance.destroy();
-
-    expenseChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul'],
-            datasets: [
-                {
-                    label: 'Pemasukan',
-                    data: [15000000, 16500000, 14000000, 17000000, 15500000, 16000000, 17000000],
-                    backgroundColor: '#00c853',
-                    borderRadius: 6
-                },
-                {
-                    label: 'Pengeluaran',
-                    data: [12000000, 13500000, 11000000, 14000000, 12500000, 13000000, 4040000],
-                    backgroundColor: '#ff1744',
-                    borderRadius: 6
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 20,
-                        usePointStyle: true,
-                        font: { family: 'Inter', size: 12 }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: (value) => 'Rp ' + (value / 1000000).toFixed(0) + 'Jt',
-                        font: { family: 'Inter' }
-                    },
-                    grid: { color: '#f1f5f9' }
-                },
-                x: {
-                    grid: { display: false },
-                    font: { family: 'Inter' }
-                }
-            }
-        }
-    });
-}
-
-// ---- Utility Functions ----
-function formatRupiah(number) {
-    return 'Rp ' + number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
+// ============================================
+// UTILITY
+// ============================================
 function updateGreeting() {
     const hour = new Date().getHours();
-    const greetingCard = document.querySelector('.greeting-card h2');
-    if (!greetingCard) return;
-
     let greeting = 'Selamat Pagi';
     if (hour >= 11 && hour < 15) greeting = 'Selamat Siang';
     else if (hour >= 15 && hour < 18) greeting = 'Selamat Sore';
     else if (hour >= 18) greeting = 'Selamat Malam';
 
-    greetingCard.textContent = `${greeting}, Ricky! 👋`;
+    const el = document.getElementById('greetingText') || document.querySelector('.greeting-card h2');
+    if (el) el.textContent = `${greeting}, ${getUserDisplayName()}! 👋`;
 }
+
+// Logout button
+document.addEventListener('click', (e) => {
+    if (e.target.closest('.logout-btn')) {
+        logoutUser();
+    }
+});
