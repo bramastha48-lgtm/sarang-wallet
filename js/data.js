@@ -1,9 +1,10 @@
 // ============================================
-// Data Management - Firestore CRUD Operations
+// Data Management - Firestore + localStorage fallback
 // ============================================
 
 let currentUser = null;
 let userData = {};
+let useFirestore = true;
 
 // Auth state listener
 auth.onAuthStateChanged(async (user) => {
@@ -12,26 +13,32 @@ auth.onAuthStateChanged(async (user) => {
         await loadUserData();
         initApp();
     } else {
-        // Not logged in, redirect to auth
         window.location.href = 'auth.html';
     }
 });
 
-// Load user data from Firestore
+// Load user data
 async function loadUserData() {
+    // Try localStorage first (guaranteed)
+    const localData = localStorage.getItem('sw_user_' + currentUser.uid);
+    if (localData) {
+        userData = JSON.parse(localData);
+    }
+
+    // Try Firestore (may fail)
     try {
         const userDoc = await db.collection('users').doc(currentUser.uid).get();
         if (userDoc.exists) {
             userData = userDoc.data();
-        } else {
-            // User doc doesn't exist yet, use auth data
-            userData = {
-                name: currentUser.displayName || currentUser.email.split('@')[0],
-                email: currentUser.email
-            };
+            localStorage.setItem('sw_user_' + currentUser.uid, JSON.stringify(userData));
         }
     } catch (e) {
-        console.warn('Firestore not accessible, using auth data:', e.message);
+        console.warn('Firestore not accessible, using localStorage:', e.message);
+        useFirestore = false;
+    }
+
+    // Fallback to auth data
+    if (!userData.name) {
         userData = {
             name: currentUser.displayName || currentUser.email.split('@')[0],
             email: currentUser.email
@@ -39,409 +46,362 @@ async function loadUserData() {
     }
 }
 
-// Get user display name
 function getUserDisplayName() {
     return userData.name || currentUser.displayName || currentUser.email.split('@')[0];
+}
+
+// ============================================
+// Helper: Safe Firestore operation with fallback
+// ============================================
+async function safeFirestore(operation, fallback) {
+    if (!useFirestore) return fallback;
+    try {
+        return await operation();
+    } catch (e) {
+        console.warn('Firestore operation failed:', e.message);
+        if (e.code === 'permission-denied') {
+            useFirestore = false;
+            console.warn('Switched to localStorage mode');
+        }
+        return fallback;
+    }
+}
+
+// LocalStorage helpers
+function getLocalData(key) {
+    const data = localStorage.getItem('sw_' + currentUser.uid + '_' + key);
+    return data ? JSON.parse(data) : [];
+}
+
+function setLocalData(key, data) {
+    localStorage.setItem('sw_' + currentUser.uid + '_' + key, JSON.stringify(data));
+}
+
+function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
 // ============================================
 // WALLET CRUD
 // ============================================
 async function getWallets() {
-    try {
+    return safeFirestore(async () => {
         const snapshot = await db.collection('users').doc(currentUser.uid).collection('wallets').orderBy('createdAt', 'asc').get();
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (e) {
-        console.warn('getWallets error:', e.message);
-        return [];
-    }
+    }, getLocalData('wallets'));
 }
 
 async function addWallet(data) {
-    try {
-        return await db.collection('users').doc(currentUser.uid).collection('wallets').add({
-            ...data,
-            balance: Number(data.balance) || 0,
-            createdAt: new Date().toISOString()
-        });
-    } catch (e) {
-        console.error('addWallet error:', e.message);
-        alert('Gagal menyimpan: ' + e.message);
-    }
-}
+    const wallet = { ...data, balance: Number(data.balance) || 0, createdAt: new Date().toISOString() };
 
-async function updateWallet(id, data) {
-    try {
-        return await db.collection('users').doc(currentUser.uid).collection('wallets').doc(id).update(data);
-    } catch (e) {
-        console.error('updateWallet error:', e.message);
-    }
+    // Save to localStorage
+    const wallets = getLocalData('wallets');
+    const id = generateId();
+    wallets.push({ id, ...wallet });
+    setLocalData('wallets', wallets);
+
+    // Try Firestore
+    return safeFirestore(async () => {
+        const ref = await db.collection('users').doc(currentUser.uid).collection('wallets').add(wallet);
+        // Update localStorage with Firestore ID
+        const idx = wallets.findIndex(w => w.id === id);
+        if (idx >= 0) wallets[idx].id = ref.id;
+        setLocalData('wallets', wallets);
+        return ref;
+    }, { id });
 }
 
 async function deleteWallet(id) {
-    try {
+    // Remove from localStorage
+    const wallets = getLocalData('wallets').filter(w => w.id !== id);
+    setLocalData('wallets', wallets);
+
+    // Try Firestore
+    return safeFirestore(async () => {
         return await db.collection('users').doc(currentUser.uid).collection('wallets').doc(id).delete();
-    } catch (e) {
-        console.error('deleteWallet error:', e.message);
-        alert('Gagal menghapus: ' + e.message);
-    }
+    }, null);
 }
 
 // ============================================
 // TRANSACTION CRUD
 // ============================================
 async function getTransactions(limit = 50) {
-    try {
+    return safeFirestore(async () => {
         const snapshot = await db.collection('users').doc(currentUser.uid)
             .collection('transactions').orderBy('date', 'desc').limit(limit).get();
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (e) {
-        console.warn('getTransactions error:', e.message);
-        return [];
-    }
+    }, getLocalData('transactions').slice(0, limit));
 }
 
 async function addTransaction(data) {
-    try {
-        const ref = await db.collection('users').doc(currentUser.uid).collection('transactions').add({
-            ...data,
-            amount: Number(data.amount) || 0,
-            createdAt: new Date().toISOString()
-        });
+    const tx = { ...data, amount: Number(data.amount) || 0, createdAt: new Date().toISOString() };
 
-        // Update wallet balance
+    // Save to localStorage
+    const transactions = getLocalData('transactions');
+    const id = generateId();
+    transactions.unshift({ id, ...tx });
+    setLocalData('transactions', transactions);
+
+    // Update wallet balance in localStorage
+    if (data.walletId) {
+        const wallets = getLocalData('wallets');
+        const idx = wallets.findIndex(w => w.id === data.walletId);
+        if (idx >= 0) {
+            if (data.type === 'income') wallets[idx].balance += Number(data.amount);
+            else if (data.type === 'expense') wallets[idx].balance -= Number(data.amount);
+            setLocalData('wallets', wallets);
+        }
+    }
+
+    // Try Firestore
+    return safeFirestore(async () => {
+        const ref = await db.collection('users').doc(currentUser.uid).collection('transactions').add(tx);
         if (data.walletId) {
             try {
                 const walletRef = db.collection('users').doc(currentUser.uid).collection('wallets').doc(data.walletId);
                 const walletDoc = await walletRef.get();
                 if (walletDoc.exists) {
-                    const currentBalance = walletDoc.data().balance || 0;
-                    let newBalance = currentBalance;
-                    if (data.type === 'income') newBalance += Number(data.amount);
-                    else if (data.type === 'expense') newBalance -= Number(data.amount);
+                    const balance = walletDoc.data().balance || 0;
+                    const newBalance = data.type === 'income' ? balance + Number(data.amount) : balance - Number(data.amount);
                     await walletRef.update({ balance: newBalance });
                 }
-            } catch (walletErr) {
-                console.warn('Wallet balance update failed:', walletErr.message);
-            }
+            } catch (e) { console.warn('Wallet update failed:', e.message); }
         }
-
         return ref;
-    } catch (e) {
-        console.error('addTransaction error:', e.message);
-        alert('Gagal menyimpan transaksi: ' + e.message);
-    }
+    }, { id });
 }
 
 async function deleteTransaction(id) {
-    try {
+    const transactions = getLocalData('transactions').filter(t => t.id !== id);
+    setLocalData('transactions', transactions);
+
+    return safeFirestore(async () => {
         return await db.collection('users').doc(currentUser.uid).collection('transactions').doc(id).delete();
-    } catch (e) {
-        console.error('deleteTransaction error:', e.message);
-        alert('Gagal menghapus: ' + e.message);
-    }
+    }, null);
 }
 
 // ============================================
 // GOAL CRUD
 // ============================================
 async function getGoals() {
-    try {
+    return safeFirestore(async () => {
         const snapshot = await db.collection('users').doc(currentUser.uid).collection('goals').orderBy('createdAt', 'desc').get();
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (e) {
-        console.warn('getGoals error:', e.message);
-        return [];
-    }
+    }, getLocalData('goals'));
 }
 
 async function addGoal(data) {
-    try {
-        return await db.collection('users').doc(currentUser.uid).collection('goals').add({
-            ...data,
-            target: Number(data.target) || 0,
-            current: Number(data.current) || 0,
-            createdAt: new Date().toISOString()
-        });
-    } catch (e) {
-        console.error('addGoal error:', e.message);
-        alert('Gagal menyimpan: ' + e.message);
-    }
-}
+    const goal = { ...data, target: Number(data.target) || 0, current: Number(data.current) || 0, createdAt: new Date().toISOString() };
+    const goals = getLocalData('goals');
+    const id = generateId();
+    goals.unshift({ id, ...goal });
+    setLocalData('goals', goals);
 
-async function updateGoal(id, data) {
-    try {
-        return await db.collection('users').doc(currentUser.uid).collection('goals').doc(id).update(data);
-    } catch (e) {
-        console.error('updateGoal error:', e.message);
-    }
+    return safeFirestore(async () => {
+        const ref = await db.collection('users').doc(currentUser.uid).collection('goals').add(goal);
+        return ref;
+    }, { id });
 }
 
 async function deleteGoal(id) {
-    try {
-        return await db.collection('users').doc(currentUser.uid).collection('goals').doc(id).delete();
-    } catch (e) {
-        console.error('deleteGoal error:', e.message);
-        alert('Gagal menghapus: ' + e.message);
-    }
+    const goals = getLocalData('goals').filter(g => g.id !== id);
+    setLocalData('goals', goals);
+    return safeFirestore(async () => db.collection('users').doc(currentUser.uid).collection('goals').doc(id).delete(), null);
 }
 
 async function addToGoal(id, amount) {
-    try {
-        const goalRef = db.collection('users').doc(currentUser.uid).collection('goals').doc(id);
-        const doc = await goalRef.get();
-        if (doc.exists) {
-            const current = doc.data().current || 0;
-            await goalRef.update({ current: current + Number(amount) });
-        }
-    } catch (e) {
-        console.error('addToGoal error:', e.message);
-        alert('Gagal menambah dana: ' + e.message);
+    const goals = getLocalData('goals');
+    const idx = goals.findIndex(g => g.id === id);
+    if (idx >= 0) {
+        goals[idx].current = (goals[idx].current || 0) + Number(amount);
+        setLocalData('goals', goals);
     }
+    return safeFirestore(async () => {
+        const ref = db.collection('users').doc(currentUser.uid).collection('goals').doc(id);
+        const doc = await ref.get();
+        if (doc.exists) await ref.update({ current: (doc.data().current || 0) + Number(amount) });
+    }, null);
 }
 
 async function withdrawFromGoal(id, amount) {
-    try {
-        const goalRef = db.collection('users').doc(currentUser.uid).collection('goals').doc(id);
-        const doc = await goalRef.get();
-        if (doc.exists) {
-            const current = doc.data().current || 0;
-            const newAmount = Math.max(0, current - Number(amount));
-            await goalRef.update({ current: newAmount });
-        }
-    } catch (e) {
-        console.error('withdrawFromGoal error:', e.message);
-        alert('Gagal menarik dana: ' + e.message);
+    const goals = getLocalData('goals');
+    const idx = goals.findIndex(g => g.id === id);
+    if (idx >= 0) {
+        goals[idx].current = Math.max(0, (goals[idx].current || 0) - Number(amount));
+        setLocalData('goals', goals);
     }
+    return safeFirestore(async () => {
+        const ref = db.collection('users').doc(currentUser.uid).collection('goals').doc(id);
+        const doc = await ref.get();
+        if (doc.exists) await ref.update({ current: Math.max(0, (doc.data().current || 0) - Number(amount)) });
+    }, null);
 }
 
 // ============================================
 // DEBT CRUD
 // ============================================
 async function getDebts() {
-    try {
+    return safeFirestore(async () => {
         const snapshot = await db.collection('users').doc(currentUser.uid).collection('debts').orderBy('createdAt', 'desc').get();
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (e) {
-        console.warn('getDebts error:', e.message);
-        return [];
-    }
+    }, getLocalData('debts'));
 }
 
 async function addDebt(data) {
-    try {
-        return await db.collection('users').doc(currentUser.uid).collection('debts').add({
-            ...data,
-            totalPrincipal: Number(data.totalPrincipal) || 0,
-            remaining: Number(data.remaining) || 0,
-            monthlyPayment: Number(data.monthlyPayment) || 0,
-            createdAt: new Date().toISOString()
-        });
-    } catch (e) {
-        console.error('addDebt error:', e.message);
-        alert('Gagal menyimpan: ' + e.message);
-    }
+    const debt = { ...data, totalPrincipal: Number(data.totalPrincipal) || 0, remaining: Number(data.remaining) || 0, monthlyPayment: Number(data.monthlyPayment) || 0, createdAt: new Date().toISOString() };
+    const debts = getLocalData('debts');
+    const id = generateId();
+    debts.unshift({ id, ...debt });
+    setLocalData('debts', debts);
+
+    return safeFirestore(async () => db.collection('users').doc(currentUser.uid).collection('debts').add(debt), { id });
 }
 
 async function payDebt(id, amount) {
-    try {
-        const debtRef = db.collection('users').doc(currentUser.uid).collection('debts').doc(id);
-        const doc = await debtRef.get();
-        if (doc.exists) {
-            const remaining = doc.data().remaining || 0;
-            const newRemaining = Math.max(0, remaining - Number(amount));
-            const status = newRemaining === 0 ? 'lunas' : 'aktif';
-            await debtRef.update({ remaining: newRemaining, status });
-        }
-    } catch (e) {
-        console.error('payDebt error:', e.message);
-        alert('Gagal bayar: ' + e.message);
+    const debts = getLocalData('debts');
+    const idx = debts.findIndex(d => d.id === id);
+    if (idx >= 0) {
+        debts[idx].remaining = Math.max(0, (debts[idx].remaining || 0) - Number(amount));
+        debts[idx].status = debts[idx].remaining === 0 ? 'lunas' : 'aktif';
+        setLocalData('debts', debts);
     }
+    return safeFirestore(async () => {
+        const ref = db.collection('users').doc(currentUser.uid).collection('debts').doc(id);
+        const doc = await ref.get();
+        if (doc.exists) {
+            const remaining = Math.max(0, (doc.data().remaining || 0) - Number(amount));
+            await ref.update({ remaining, status: remaining === 0 ? 'lunas' : 'aktif' });
+        }
+    }, null);
 }
 
 async function deleteDebt(id) {
-    try {
-        return await db.collection('users').doc(currentUser.uid).collection('debts').doc(id).delete();
-    } catch (e) {
-        console.error('deleteDebt error:', e.message);
-        alert('Gagal menghapus: ' + e.message);
-    }
+    const debts = getLocalData('debts').filter(d => d.id !== id);
+    setLocalData('debts', debts);
+    return safeFirestore(async () => db.collection('users').doc(currentUser.uid).collection('debts').doc(id).delete(), null);
 }
 
 // ============================================
 // RECEIVABLE CRUD
 // ============================================
 async function getReceivables() {
-    try {
+    return safeFirestore(async () => {
         const snapshot = await db.collection('users').doc(currentUser.uid).collection('receivables').orderBy('createdAt', 'desc').get();
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (e) {
-        console.warn('getReceivables error:', e.message);
-        return [];
-    }
+    }, getLocalData('receivables'));
 }
 
 async function addReceivable(data) {
-    try {
-        return await db.collection('users').doc(currentUser.uid).collection('receivables').add({
-            ...data,
-            totalLent: Number(data.totalLent) || 0,
-            remaining: Number(data.remaining) || 0,
-            collected: Number(data.collected) || 0,
-            createdAt: new Date().toISOString()
-        });
-    } catch (e) {
-        console.error('addReceivable error:', e.message);
-        alert('Gagal menyimpan: ' + e.message);
-    }
+    const rec = { ...data, totalLent: Number(data.totalLent) || 0, remaining: Number(data.remaining) || 0, collected: Number(data.collected) || 0, createdAt: new Date().toISOString() };
+    const receivables = getLocalData('receivables');
+    const id = generateId();
+    receivables.unshift({ id, ...rec });
+    setLocalData('receivables', receivables);
+
+    return safeFirestore(async () => db.collection('users').doc(currentUser.uid).collection('receivables').add(rec), { id });
 }
 
 async function collectReceivable(id, amount) {
-    try {
+    const receivables = getLocalData('receivables');
+    const idx = receivables.findIndex(r => r.id === id);
+    if (idx >= 0) {
+        receivables[idx].collected = (receivables[idx].collected || 0) + Number(amount);
+        receivables[idx].remaining = Math.max(0, (receivables[idx].remaining || 0) - Number(amount));
+        receivables[idx].status = receivables[idx].remaining === 0 ? 'lunas' : 'aktif';
+        setLocalData('receivables', receivables);
+    }
+    return safeFirestore(async () => {
         const ref = db.collection('users').doc(currentUser.uid).collection('receivables').doc(id);
         const doc = await ref.get();
         if (doc.exists) {
-            const data = doc.data();
-            const newCollected = (data.collected || 0) + Number(amount);
-            const newRemaining = Math.max(0, (data.remaining || 0) - Number(amount));
-            const status = newRemaining === 0 ? 'lunas' : 'aktif';
-            await ref.update({ collected: newCollected, remaining: newRemaining, status });
+            const d = doc.data();
+            await ref.update({ collected: (d.collected || 0) + Number(amount), remaining: Math.max(0, (d.remaining || 0) - Number(amount)), status: Math.max(0, (d.remaining || 0) - Number(amount)) === 0 ? 'lunas' : 'aktif' });
         }
-    } catch (e) {
-        console.error('collectReceivable error:', e.message);
-        alert('Gagal menerima pembayaran: ' + e.message);
-    }
+    }, null);
 }
 
 async function deleteReceivable(id) {
-    try {
-        return await db.collection('users').doc(currentUser.uid).collection('receivables').doc(id).delete();
-    } catch (e) {
-        console.error('deleteReceivable error:', e.message);
-        alert('Gagal menghapus: ' + e.message);
-    }
+    const receivables = getLocalData('receivables').filter(r => r.id !== id);
+    setLocalData('receivables', receivables);
+    return safeFirestore(async () => db.collection('users').doc(currentUser.uid).collection('receivables').doc(id).delete(), null);
 }
 
 // ============================================
 // INVESTMENT CRUD
 // ============================================
 async function getInvestments() {
-    try {
+    return safeFirestore(async () => {
         const snapshot = await db.collection('users').doc(currentUser.uid).collection('investments').orderBy('createdAt', 'desc').get();
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (e) {
-        console.warn('getInvestments error:', e.message);
-        return [];
-    }
+    }, getLocalData('investments'));
 }
 
 async function addInvestment(data) {
-    try {
-        return await db.collection('users').doc(currentUser.uid).collection('investments').add({
-            ...data,
-            buyPrice: Number(data.buyPrice) || 0,
-            currentPrice: Number(data.currentPrice) || 0,
-            createdAt: new Date().toISOString()
-        });
-    } catch (e) {
-        console.error('addInvestment error:', e.message);
-        alert('Gagal menyimpan: ' + e.message);
-    }
-}
+    const inv = { ...data, buyPrice: Number(data.buyPrice) || 0, currentPrice: Number(data.currentPrice) || 0, createdAt: new Date().toISOString() };
+    const investments = getLocalData('investments');
+    const id = generateId();
+    investments.unshift({ id, ...inv });
+    setLocalData('investments', investments);
 
-async function updateInvestment(id, data) {
-    try {
-        return await db.collection('users').doc(currentUser.uid).collection('investments').doc(id).update(data);
-    } catch (e) {
-        console.error('updateInvestment error:', e.message);
-    }
+    return safeFirestore(async () => db.collection('users').doc(currentUser.uid).collection('investments').add(inv), { id });
 }
 
 async function deleteInvestment(id) {
-    try {
-        return await db.collection('users').doc(currentUser.uid).collection('investments').doc(id).delete();
-    } catch (e) {
-        console.error('deleteInvestment error:', e.message);
-        alert('Gagal menghapus: ' + e.message);
-    }
+    const investments = getLocalData('investments').filter(i => i.id !== id);
+    setLocalData('investments', investments);
+    return safeFirestore(async () => db.collection('users').doc(currentUser.uid).collection('investments').doc(id).delete(), null);
 }
 
 // ============================================
 // ASSET CRUD
 // ============================================
 async function getAssets() {
-    try {
+    return safeFirestore(async () => {
         const snapshot = await db.collection('users').doc(currentUser.uid).collection('assets').orderBy('createdAt', 'desc').get();
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (e) {
-        console.warn('getAssets error:', e.message);
-        return [];
-    }
+    }, getLocalData('assets'));
 }
 
 async function addAsset(data) {
-    try {
-        return await db.collection('users').doc(currentUser.uid).collection('assets').add({
-            ...data,
-            value: Number(data.value) || 0,
-            createdAt: new Date().toISOString()
-        });
-    } catch (e) {
-        console.error('addAsset error:', e.message);
-        alert('Gagal menyimpan: ' + e.message);
-    }
-}
+    const asset = { ...data, value: Number(data.value) || 0, createdAt: new Date().toISOString() };
+    const assets = getLocalData('assets');
+    const id = generateId();
+    assets.unshift({ id, ...asset });
+    setLocalData('assets', assets);
 
-async function updateAsset(id, data) {
-    try {
-        return await db.collection('users').doc(currentUser.uid).collection('assets').doc(id).update(data);
-    } catch (e) {
-        console.error('updateAsset error:', e.message);
-    }
+    return safeFirestore(async () => db.collection('users').doc(currentUser.uid).collection('assets').add(asset), { id });
 }
 
 async function deleteAsset(id) {
-    try {
-        return await db.collection('users').doc(currentUser.uid).collection('assets').doc(id).delete();
-    } catch (e) {
-        console.error('deleteAsset error:', e.message);
-        alert('Gagal menghapus: ' + e.message);
-    }
+    const assets = getLocalData('assets').filter(a => a.id !== id);
+    setLocalData('assets', assets);
+    return safeFirestore(async () => db.collection('users').doc(currentUser.uid).collection('assets').doc(id).delete(), null);
 }
 
 // ============================================
 // SUBSCRIPTION CRUD
 // ============================================
 async function getSubscriptions() {
-    try {
+    return safeFirestore(async () => {
         const snapshot = await db.collection('users').doc(currentUser.uid).collection('subscriptions').orderBy('createdAt', 'desc').get();
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (e) {
-        console.warn('getSubscriptions error:', e.message);
-        return [];
-    }
+    }, getLocalData('subscriptions'));
 }
 
 async function addSubscription(data) {
-    try {
-        return await db.collection('users').doc(currentUser.uid).collection('subscriptions').add({
-            ...data,
-            amount: Number(data.amount) || 0,
-            createdAt: new Date().toISOString()
-        });
-    } catch (e) {
-        console.error('addSubscription error:', e.message);
-        alert('Gagal menyimpan: ' + e.message);
-    }
+    const sub = { ...data, amount: Number(data.amount) || 0, createdAt: new Date().toISOString() };
+    const subs = getLocalData('subscriptions');
+    const id = generateId();
+    subs.unshift({ id, ...sub });
+    setLocalData('subscriptions', subs);
+
+    return safeFirestore(async () => db.collection('users').doc(currentUser.uid).collection('subscriptions').add(sub), { id });
 }
 
 async function deleteSubscription(id) {
-    try {
-        return await db.collection('users').doc(currentUser.uid).collection('subscriptions').doc(id).delete();
-    } catch (e) {
-        console.error('deleteSubscription error:', e.message);
-        alert('Gagal menghapus: ' + e.message);
-    }
+    const subs = getLocalData('subscriptions').filter(s => s.id !== id);
+    setLocalData('subscriptions', subs);
+    return safeFirestore(async () => db.collection('users').doc(currentUser.uid).collection('subscriptions').doc(id).delete(), null);
 }
 
 // ============================================
