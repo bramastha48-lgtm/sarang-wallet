@@ -1,16 +1,15 @@
 // ============================================
 // Firebase Configuration
 // ============================================
-// GANTI dengan config Firebase kamu!
-// Cara: Firebase Console → Project Settings → Web App → Copy config
 
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyCuGKOiRrInAb-dElrElje639wIwHjkmhY",
+    authDomain: "sarang-wallet-e5faa.firebaseapp.com",
+    projectId: "sarang-wallet-e5faa",
+    storageBucket: "sarang-wallet-e5faa.firebasestorage.app",
+    messagingSenderId: "197608432834",
+    appId: "1:197608432834:web:d70c591997e8080a5b875b",
+    measurementId: "G-RL939GX7JQ"
 };
 
 // Initialize Firebase
