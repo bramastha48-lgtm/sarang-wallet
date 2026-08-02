@@ -1,5 +1,5 @@
 // ============================================
-// WLLT-e Service Worker - PWA Support
+// SARANG WALLET Service Worker - PWA Support
 // ============================================
 
 const CACHE_NAME = 'wllte-v2';

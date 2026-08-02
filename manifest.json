@@ -1,6 +1,6 @@
 {
-    "name": "WLLT-e - Smart Financial Dashboard",
-    "short_name": "WLLT-e",
+    "name": "SARANG WALLET - Smart Financial Dashboard",
+    "short_name": "SARANG WALLET",
     "description": "Dashboard keuangan pribadi - kelola dompet, transaksi, budget, dan tujuan finansial",
     "start_url": "/app.html",
     "display": "standalone",

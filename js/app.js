@@ -1,5 +1,5 @@
 // ============================================
-// WLLT-e App JavaScript - Firebase Integrated
+// SARANG WALLET App JavaScript - Firebase Integrated
 // ============================================
 
 // ---- Navigation ----
@@ -1080,7 +1080,7 @@ function sendChat() {
         const botMsg = document.createElement('div');
         botMsg.className = 'msg bot';
         botMsg.innerHTML = `<div class="msg-avatar"><i class="fas fa-robot"></i></div>
-            <div class="msg-content"><p>Halo ${getUserDisplayName()}! 👋 Saya WLLT-Ai. Ada yang bisa saya bantu? Coba tanya tentang budget, tabungan, atau pengeluaranmu!</p>
+            <div class="msg-content"><p>Halo ${getUserDisplayName()}! 👋 Saya SARANG AI. Ada yang bisa saya bantu? Coba tanya tentang budget, tabungan, atau pengeluaranmu!</p>
             <span class="msg-time">${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span></div>`;
         messages.appendChild(botMsg);
         messages.scrollTop = messages.scrollHeight;
