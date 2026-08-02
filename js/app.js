@@ -69,6 +69,22 @@ function initApp() {
     const addBtn = document.getElementById('addTransactionBtn');
     if (addBtn) addBtn.addEventListener('click', () => openModal('addTransactionModal'));
 
+    // Transaction modal tabs
+    document.querySelectorAll('.mt-tab[data-tx-type]').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.mt-tab[data-tx-type]').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+        });
+    });
+
+    // Tag selection in goal modal
+    document.querySelectorAll('#addGoalModal .tag').forEach(tag => {
+        tag.addEventListener('click', () => {
+            document.querySelectorAll('#addGoalModal .tag').forEach(t => t.classList.remove('active'));
+            tag.classList.add('active');
+        });
+    });
+
     // Load home page data
     loadPageData('home');
 }
@@ -321,19 +337,43 @@ async function loadGoalsPage() {
 }
 
 async function handleAddToGoal(id) {
-    const amount = prompt('Masukkan jumlah yang ingin ditambahkan (Rp):');
-    if (amount && !isNaN(parseRupiah(amount))) {
-        await addToGoal(id, parseRupiah(amount));
-        await loadGoalsPage();
-    }
+    // Open modal with goal data
+    const goals = await getGoals();
+    const goal = goals.find(g => g.id === id);
+    if (!goal) return;
+    document.getElementById('fundGoalId').value = id;
+    document.getElementById('fundGoalName').value = goal.name;
+    document.getElementById('fundGoalAmount').value = '';
+    openModal('addFundGoalModal');
+}
+
+async function handleAddFundGoal() {
+    const id = document.getElementById('fundGoalId')?.value;
+    const amount = parseRupiah(document.getElementById('fundGoalAmount')?.value || '0');
+    if (!id || !amount) return alert('Masukkan nominal');
+    await addToGoal(id, amount);
+    closeModal('addFundGoalModal');
+    await loadGoalsPage();
 }
 
 async function handleWithdrawGoal(id) {
-    const amount = prompt('Masukkan jumlah yang ingin ditarik (Rp):');
-    if (amount && !isNaN(parseRupiah(amount))) {
-        await withdrawFromGoal(id, parseRupiah(amount));
-        await loadGoalsPage();
-    }
+    // Open modal with goal data
+    const goals = await getGoals();
+    const goal = goals.find(g => g.id === id);
+    if (!goal) return;
+    document.getElementById('withdrawGoalId').value = id;
+    document.getElementById('withdrawGoalName').value = goal.name;
+    document.getElementById('withdrawGoalAmount').value = '';
+    openModal('withdrawGoalModal');
+}
+
+async function handleWithdrawGoalSubmit() {
+    const id = document.getElementById('withdrawGoalId')?.value;
+    const amount = parseRupiah(document.getElementById('withdrawGoalAmount')?.value || '0');
+    if (!id || !amount) return alert('Masukkan nominal');
+    await withdrawFromGoal(id, amount);
+    closeModal('withdrawGoalModal');
+    await loadGoalsPage();
 }
 
 async function handleDeleteGoal(id) {
@@ -434,11 +474,24 @@ async function loadDebtsPage() {
 }
 
 async function handlePayDebt(id) {
-    const amount = prompt('Masukkan jumlah pembayaran (Rp):');
-    if (amount && !isNaN(parseRupiah(amount))) {
-        await payDebt(id, parseRupiah(amount));
-        await loadDebtsPage();
-    }
+    // Open modal with debt data
+    const debts = await getDebts();
+    const debt = debts.find(d => d.id === id);
+    if (!debt) return;
+    document.getElementById('payDebtId').value = id;
+    document.getElementById('payDebtName').value = debt.name;
+    document.getElementById('payDebtRemaining').value = formatRupiah(debt.remaining);
+    document.getElementById('payDebtAmount').value = '';
+    openModal('payDebtModal');
+}
+
+async function handlePayDebtSubmit() {
+    const id = document.getElementById('payDebtId')?.value;
+    const amount = parseRupiah(document.getElementById('payDebtAmount')?.value || '0');
+    if (!id || !amount) return alert('Masukkan nominal');
+    await payDebt(id, amount);
+    closeModal('payDebtModal');
+    await loadDebtsPage();
 }
 
 async function handleDeleteDebt(id) {
@@ -493,11 +546,24 @@ async function loadReceivablesPage() {
 }
 
 async function handleCollectReceivable(id) {
-    const amount = prompt('Masukkan jumlah yang diterima (Rp):');
-    if (amount && !isNaN(parseRupiah(amount))) {
-        await collectReceivable(id, parseRupiah(amount));
-        await loadReceivablesPage();
-    }
+    // Open modal with receivable data
+    const receivables = await getReceivables();
+    const rec = receivables.find(r => r.id === id);
+    if (!rec) return;
+    document.getElementById('collectReceivableId').value = id;
+    document.getElementById('collectReceivableName').value = rec.name;
+    document.getElementById('collectReceivableRemaining').value = formatRupiah(rec.remaining);
+    document.getElementById('collectReceivableAmount').value = '';
+    openModal('collectReceivableModal');
+}
+
+async function handleCollectReceivableSubmit() {
+    const id = document.getElementById('collectReceivableId')?.value;
+    const amount = parseRupiah(document.getElementById('collectReceivableAmount')?.value || '0');
+    if (!id || !amount) return alert('Masukkan nominal');
+    await collectReceivable(id, amount);
+    closeModal('collectReceivableModal');
+    await loadReceivablesPage();
 }
 
 async function handleDeleteReceivable(id) {
@@ -710,7 +776,7 @@ async function handleAddWallet() {
 
 // Add Transaction
 async function handleAddTransaction() {
-    const type = document.querySelector('.mt-tab.active')?.dataset?.type || 'expense';
+    const type = document.querySelector('.mt-tab.active')?.dataset?.txType || 'expense';
     const amount = parseRupiah(document.getElementById('txAmount')?.value || '0');
     const date = document.getElementById('txDate')?.value;
     const walletId = document.getElementById('txWallet')?.value;
