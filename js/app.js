@@ -88,6 +88,9 @@ function initApp() {
     // Initialize scan upload
     initScanUpload();
 
+    // Initialize number formatting
+    initNumberFormatting();
+
     // Load home page data
     loadPageData('home');
 }
@@ -225,7 +228,8 @@ async function loadWalletsPage() {
 }
 
 function populateWalletSelects(wallets) {
-    const selects = document.querySelectorAll('.wallet-select');
+    // Populate all wallet selects (by class and by ID)
+    const selects = document.querySelectorAll('.wallet-select, #txWallet, #scanWallet');
     selects.forEach(sel => {
         const current = sel.value;
         sel.innerHTML = '<option value="">Pilih Dompet</option>' +
@@ -1039,6 +1043,11 @@ function openModal(id) {
         // Set default date
         const dateInput = modal.querySelector('input[type="date"]');
         if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
+
+        // Populate wallet selects when opening transaction or scan modal
+        if (id === 'addTransactionModal' || id === 'scanModal') {
+            getWallets().then(wallets => populateWalletSelects(wallets));
+        }
     }
 }
 
@@ -1092,8 +1101,52 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ============================================
+// NUMBER FORMATTING
+// ============================================
+
+// Format number with dots while typing
+function formatNumberInput(input) {
+    let value = input.value.replace(/[^0-9]/g, '');
+    if (value) {
+        // Add dots every 3 digits from right
+        value = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+    input.value = value;
+}
+
+// Initialize number formatting on all amount inputs
+function initNumberFormatting() {
+    const amountInputs = document.querySelectorAll(
+        '#txAmount, #walletBalance, #goalTarget, #assetValue, #debtPrincipal, #debtMonthly, ' +
+        '#receivableTotalLent, #investBuyPrice, #investCurrentPrice, #subAmount, ' +
+        '#fundGoalAmount, #withdrawGoalAmount, #payDebtAmount, #collectReceivableAmount, #scanTotal'
+    );
+    amountInputs.forEach(input => {
+        input.addEventListener('input', () => formatNumberInput(input));
+        input.addEventListener('focus', () => formatNumberInput(input));
+    });
+}
+
+// ============================================
 // UTILITY
 // ============================================
+
+// Parse Rupiah with dots to number
+function parseRupiah(str) {
+    if (typeof str === 'number') return str;
+    return parseInt(String(str).replace(/[^0-9]/g, '')) || 0;
+}
+
+function formatRupiah(number) {
+    return 'Rp ' + Number(number).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 function updateGreeting() {
     const hour = new Date().getHours();
     let greeting = 'Selamat Pagi';

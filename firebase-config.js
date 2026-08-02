@@ -24,7 +24,8 @@ const EMAIL_DOMAIN = "sarangwallet.com";
 
 // Generate email from username
 function generateEmail(username) {
-    return `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@${EMAIL_DOMAIN}`;
+    const cleanUsername = username.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return `${cleanUsername}@${EMAIL_DOMAIN}`;
 }
 
 // Format currency

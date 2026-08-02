@@ -91,7 +91,11 @@ async function registerUser() {
         console.log('Auth user created:', user.uid);
 
         // Step 2: Update display name
-        await user.updateProfile({ displayName: name });
+        try {
+            await user.updateProfile({ displayName: name });
+        } catch (e) {
+            console.warn('Profile update failed:', e.message);
+        }
 
         // Step 3: Save to localStorage (guaranteed to work)
         const userData = {
