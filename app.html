@@ -502,6 +502,22 @@
 
                 <div class="settings-content">
                     <div class="section-card">
+                        <div class="section-header"><h3>💾 Backup & Restore Data</h3></div>
+                        <p class="page-desc">Simpan data ke file atau pulihkan dari backup</p>
+                        <div style="display:flex;gap:12px;margin-top:12px">
+                            <button class="btn-primary-sm" onclick="exportData()">
+                                <i class="fas fa-download"></i> Export Data
+                            </button>
+                            <button class="btn-outline-sm" onclick="importData()">
+                                <i class="fas fa-upload"></i> Import Data
+                            </button>
+                        </div>
+                        <p style="font-size:0.75rem;color:var(--text-lighter);margin-top:8px">
+                            ⚠️ Data disimpan di browser. Export secara berkala untuk backup!
+                        </p>
+                    </div>
+
+                    <div class="section-card">
                         <div class="section-header"><h3>👤 Profil Pengguna</h3></div>
                         <div class="settings-form">
                             <div class="sf-row">

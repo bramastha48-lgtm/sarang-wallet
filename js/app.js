@@ -1164,3 +1164,77 @@ document.addEventListener('click', (e) => {
         logoutUser();
     }
 });
+
+// ============================================
+// EXPORT / IMPORT DATA
+// ============================================
+
+async function exportData() {
+    const data = {
+        version: '1.0',
+        app: 'SARANG WALLET',
+        exportDate: new Date().toISOString(),
+        user: {
+            name: getUserDisplayName(),
+            email: currentUser?.email
+        },
+        wallets: getLocalData('wallets'),
+        transactions: getLocalData('transactions'),
+        goals: getLocalData('goals'),
+        debts: getLocalData('debts'),
+        receivables: getLocalData('receivables'),
+        investments: getLocalData('investments'),
+        assets: getLocalData('assets'),
+        subscriptions: getLocalData('subscriptions')
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sarang-wallet-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function importData() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+
+            if (!data.version || !data.wallets) {
+                return alert('File backup tidak valid!');
+            }
+
+            if (data.wallets) setLocalData('wallets', data.wallets);
+            if (data.transactions) setLocalData('transactions', data.transactions);
+            if (data.goals) setLocalData('goals', data.goals);
+            if (data.debts) setLocalData('debts', data.debts);
+            if (data.receivables) setLocalData('receivables', data.receivables);
+            if (data.investments) setLocalData('investments', data.investments);
+            if (data.assets) setLocalData('assets', data.assets);
+            if (data.subscriptions) setLocalData('subscriptions', data.subscriptions);
+
+            alert('Data berhasil di-import! ✅');
+
+            // Reload current page
+            const activePage = document.querySelector('.page.active');
+            if (activePage) {
+                const pageName = activePage.id.replace('page-', '');
+                await loadPageData(pageName);
+            }
+        } catch (err) {
+            alert('Gagal import: ' + err.message);
+        }
+    };
+    input.click();
+}
