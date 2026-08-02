@@ -90,21 +90,14 @@ async function registerUser() {
     try {
         const email = generateEmail(username);
 
-        // Check if username already exists in Firestore
-        const usernameDoc = await db.collection('usernames').doc(username).get();
-        if (usernameDoc.exists) {
-            setLoading('regBtnText', 'regSpinner', false);
-            return showError('regError', 'Username sudah digunakan, pilih yang lain');
-        }
-
-        // Create user in Firebase Auth
+        // Step 1: Create user in Firebase Auth FIRST
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
         const user = userCredential.user;
 
-        // Update display name
+        // Step 2: Update display name
         await user.updateProfile({ displayName: name });
 
-        // Save user data to Firestore (simplified - one document)
+        // Step 3: Now user is authenticated, save to Firestore
         try {
             await db.collection('users').doc(user.uid).set({
                 username: username,
@@ -113,8 +106,18 @@ async function registerUser() {
                 currency: 'IDR',
                 createdAt: new Date().toISOString()
             });
+            console.log('User data saved to Firestore');
         } catch (firestoreErr) {
-            console.warn('Firestore write failed, continuing with auth only:', firestoreErr.message);
+            console.warn('Firestore write failed (non-critical):', firestoreErr.message);
+        }
+
+        // Step 4: Try to reserve username (non-critical)
+        try {
+            await db.collection('usernames').doc(username).set({
+                uid: user.uid
+            });
+        } catch (e) {
+            console.warn('Username reservation failed (non-critical):', e.message);
         }
 
         showSuccess('regSuccess', 'Akun berhasil dibuat! Mengalihkan...');
