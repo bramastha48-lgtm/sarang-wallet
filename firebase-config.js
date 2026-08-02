@@ -20,7 +20,7 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 // Auto-email domain (user daftar pakai username, email auto-generated)
-const EMAIL_DOMAIN = "sarangwallet.app";
+const EMAIL_DOMAIN = "sarangwallet.com";
 
 // Generate email from username
 function generateEmail(username) {
